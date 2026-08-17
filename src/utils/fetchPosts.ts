@@ -116,7 +116,14 @@ async function fetchSubreddit(
   return posts
 }
 
-export async function fetchPosts(config: ConfigState) {
+/**
+ * @param onWarning called when some (but not all) sources failed, so the UI
+ *   can say so without treating a partial result as a hard failure.
+ */
+export async function fetchPosts(
+  config: ConfigState,
+  onWarning?: (message: string) => void
+) {
   const source = config.source
   const kind = source?.kind ?? "reddit"
 
@@ -136,13 +143,38 @@ export async function fetchPosts(config: ConfigState) {
   // it. An old config with only `nsfw` keeps behaving exactly as it used to.
   const nsfwMode = config.nsfw ? (source?.nsfwMode ?? "only") : "off"
 
-  let posts: Post[] = []
+  const targets = subreddits.length ? subreddits : DEFAULT_SUBREDDITS
 
-  for (const subreddit of subreddits.length ? subreddits : DEFAULT_SUBREDDITS) {
-    posts = posts.concat(
-      await fetchSubreddit(subreddit, config, limit, nsfwMode !== "off")
-    )
+  // Fetched in parallel, and a failure is isolated to its own subreddit: one
+  // banned, private, or misspelled entry must not take down the whole list.
+  const results = await Promise.all(
+    targets.map(async (subreddit) => {
+      try {
+        return {
+          subreddit,
+          posts: await fetchSubreddit(subreddit, config, limit, nsfwMode !== "off"),
+          error: null as Error | null,
+        }
+      } catch (error) {
+        return { subreddit, posts: [] as Post[], error: error as Error }
+      }
+    })
+  )
+
+  const failed = results.filter((result) => result.error)
+
+  // Only give up when there is nothing left to show.
+  if (failed.length === results.length && failed[0]) {
+    throw failed[0].error
   }
+
+  if (failed.length) {
+    const names = failed.map((result) => `r/${result.subreddit}`).join(", ")
+    console.warn(`[!] Skipped unreachable subreddits: ${names}`)
+    onWarning?.(`Couldn't reach ${names}`)
+  }
+
+  let posts: Post[] = results.flatMap((result) => result.posts)
 
   if (nsfwMode === "only") posts = posts.filter((e) => e.thumbnail === "nsfw")
 

@@ -14,7 +14,13 @@ import pkg from "../package.json"
 
 import { useSnapshot } from "valtio"
 import "./App.scss"
-import { AppStore, LoadState, setError, setLoaded } from "./stores/AppStore"
+import {
+  AppStore,
+  LoadState,
+  setError,
+  setLoaded,
+  setWarning,
+} from "./stores/AppStore"
 import { CacheStore } from "./stores/CacheStore"
 import { ConfigStore, type ConfigState } from "./stores/ConfigStore"
 import {
@@ -26,7 +32,7 @@ import { fetchPosts } from "./utils/fetchPosts"
 import { rollIntervalMs, themeVariables } from "./utils/theme"
 
 function App() {
-  const { loaded, showRollOverlay, error } = useSnapshot(AppStore)
+  const { loaded, showRollOverlay, error, warning } = useSnapshot(AppStore)
   const config = useSnapshot(ConfigStore)
   const cache = useSnapshot(CacheStore)
   const { history, i } = useSnapshot(HistoryStore)
@@ -79,8 +85,16 @@ function App() {
         console.log("[i] Fetching w/ config:", config)
 
         try {
-          posts = await fetchPosts(config as ConfigState)
-          if (!ignore) setError(null)
+          let warning: string | null = null
+
+          posts = await fetchPosts(config as ConfigState, (message) => {
+            warning = message
+          })
+
+          if (!ignore) {
+            setError(null)
+            setWarning(warning)
+          }
         } catch (fetchError) {
           if (ignore) return
 
@@ -104,12 +118,20 @@ function App() {
         return
       }
 
-      const num = Math.floor(Math.random() * posts.length)
-      const post = posts[num]
+      // Reroll should visibly do something. When the filters leave more than
+      // one candidate, never hand back the one already on screen.
+      const currentUrl = HistoryStore.history[HistoryStore.i]?.url
+      const pool =
+        posts.length > 1 ? posts.filter((p) => p.url !== currentUrl) : posts
+      const candidates = pool.length ? pool : posts
+
+      const post = candidates[Math.floor(Math.random() * candidates.length)]
 
       console.log("[i] Loading post:", post)
 
-      pushPostToHistory(post, num, posts.length)
+      // Number the post against the full listing, not the filtered pool, so
+      // the "#N of M" line still means what it says.
+      pushPostToHistory(post, posts.indexOf(post), posts.length)
       CacheStore.lastRolled = Date.now()
       setLoaded(LoadState.LOADING)
     }
@@ -210,6 +232,12 @@ function App() {
                   <p className="attr-bottom to-load to-delay-4">
                     {error ? (
                       <>{error} • Check the Data tab in the menu</>
+                    ) : warning ? (
+                      <>
+                        {warning} • Post{" "}
+                        <strong>#{(data?.nums[0] || 0) + 1}</strong> of{" "}
+                        <strong>{data?.nums[1]}</strong>
+                      </>
                     ) : isColorOnly ? (
                       <>Pick colours under Wallpaper in the menu</>
                     ) : data === null ? (

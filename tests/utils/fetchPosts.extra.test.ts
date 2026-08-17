@@ -183,6 +183,38 @@ describe("fetchPosts sources", () => {
     expect(posts).toHaveLength(2)
   })
 
+  it("keeps working when one subreddit of several fails", async () => {
+    const fetchMock = vi
+      .fn()
+      // r/good succeeds...
+      .mockResolvedValueOnce({
+        json: async () => makeListing([{ url: "https://i.redd.it/ok.jpg" }], null),
+      })
+      // ...r/banned is unreachable.
+      .mockRejectedValueOnce(new Error("NetworkError"))
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    const warn = vi.fn()
+    const posts = await fetchPosts(
+      withSource({ subreddits: ["good", "banned"] }),
+      warn
+    )
+
+    expect(posts.map((p) => p.url)).toEqual(["https://i.redd.it/ok.jpg"])
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("r/banned"))
+  })
+
+  it("still throws when every subreddit fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("NetworkError")))
+
+    const warn = vi.fn()
+    await expect(
+      fetchPosts(withSource({ subreddits: ["a", "b"] }), warn)
+    ).rejects.toBeInstanceOf(SourceError)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
   it("raises a SourceError when the request fails", async () => {
     vi.stubGlobal(
       "fetch",

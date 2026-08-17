@@ -12,12 +12,15 @@ export type AppStore = {
   showRollOverlay: boolean
   /** Human-readable reason the current source failed, or null when healthy. */
   error: string | null
+  /** Set when some sources failed but others still returned wallpapers. */
+  warning: string | null
 }
 
 export const AppStore = proxy<AppStore>({
   loaded: LoadState.FETCH_NEW,
   showRollOverlay: false,
   error: null,
+  warning: null,
 })
 
 export const setLoaded = (state: LoadState) => {
@@ -30,4 +33,8 @@ export const setShowRollOverlay = (show: boolean) => {
 
 export const setError = (error: string | null) => {
   AppStore.error = error
+}
+
+export const setWarning = (warning: string | null) => {
+  AppStore.warning = warning
 }

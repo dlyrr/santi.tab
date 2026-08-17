@@ -39,6 +39,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(fetchPostsMock).toHaveBeenCalledWith(
         expect.objectContaining({ q: 'flair:"Desktop"', sort: "top" }),
+        expect.any(Function),
       )
     })
 

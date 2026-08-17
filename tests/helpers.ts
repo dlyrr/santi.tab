@@ -8,6 +8,7 @@ export function resetStores() {
   AppStore.loaded = LoadState.FETCH_NEW
   AppStore.showRollOverlay = false
   AppStore.error = null
+  AppStore.warning = null
 
   CacheStore.lastUpdated = -1
   CacheStore.lastRolled = -1
