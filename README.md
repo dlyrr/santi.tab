@@ -144,7 +144,7 @@ Regenerating committed assets, only when you change them:
 
 ```bash
 npm run fonts          # re-download the bundled woff2 subsets
-npm run icons          # rasterize marketing/icon.svg into public/icons
+npm run icons          # rasterize the logo into public/icons
 ```
 
 ### Layout
