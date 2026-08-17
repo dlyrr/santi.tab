@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="marketing/icon.svg" width="96" alt="santi.tab icon" />
+<img src="marketing/santi.tab logo.png" width="96" alt="santi.tab icon" />
 
 # santi.tab
 
