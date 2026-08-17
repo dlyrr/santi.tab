@@ -36,13 +36,7 @@ jobs:
     needs: check
     strategy:
       matrix:
-        include:
-          - target: chromium
-            script: build
-            dir: dist
-          - target: firefox
-            script: build:firefox
-            dir: dist-firefox
+        target: [chromium, firefox]
     steps:
       - uses: actions/checkout@v4
 
@@ -53,16 +47,17 @@ jobs:
 
       - run: npm ci
 
+      # Same scripts used locally, so CI can't drift from what we hand out.
       - name: Build
-        run: npm run ${{ matrix.script }}
+        run: npm run build${{ matrix.target == 'firefox' && ':firefox' || '' }}
 
       - name: Zip
-        run: cd ${{ matrix.dir }} && zip -r ../santi.tab-${{ matrix.target }}.zip .
+        run: npm run zip:${{ matrix.target }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: santi.tab-${{ matrix.target }}
-          path: santi.tab-${{ matrix.target }}.zip
+          path: web-ext-artifacts/*.zip
           if-no-files-found: error
 
   release:
@@ -82,3 +77,18 @@ jobs:
           artifacts: "santi.tab-*.zip"
           generateReleaseNotes: true
           immutableCreate: true
+          body: |
+            ## Install
+
+            **Firefox** — install from
+            [addons.mozilla.org](https://addons.mozilla.org/firefox/addon/santi-tab/).
+            The zip below is unsigned, so Firefox will only load it temporarily
+            (`about:debugging` → Load Temporary Add-on); it is removed on restart.
+
+            **Chromium** (Chrome, Edge, Brave, Arc, Vivaldi, Opera) — download
+            `santi.tab-chromium-*.zip`, unzip it, open `chrome://extensions`,
+            enable Developer mode, then **Load unpacked** and pick the folder.
+
+            After installing on Firefox, grant reddit access once via
+            **Menu → Data → Grant reddit.com access** — Firefox treats MV3 host
+            permissions as optional, so no wallpapers load until you do.
