@@ -4,7 +4,7 @@
 
 # santi.tab
 
-**A ridiculously customizable new tab page — for Firefox and Chromium.**
+**A ridiculously customizable new tab page for Firefox *and* Chromium.**
 
 <img src="marketing/logo2.png"/>
 
@@ -15,7 +15,7 @@
 
 santi.tab replaces your new tab with a full-bleed wallpaper and only the widgets
 you actually want. Every colour, filter, font, position, shortcut and source is
-yours to change — and if the settings panel still isn't enough, there's a custom
+yours to change, and if the settings panel still isn't enough, there's a custom
 CSS box at the bottom of it.
 
 A fork of [cf12/atarashii-tab](https://github.com/cf12/atarashii-tab), rebuilt
@@ -192,6 +192,10 @@ Pushing a tag builds both targets and publishes a GitHub release.
 - Default wallpapers come from [r/Animewallpaper](https://reddit.com/r/Animewallpaper);
   artwork belongs to its original artists
 - Fonts: Poppins, Montserrat, Inter, Space Grotesk, JetBrains Mono (SIL OFL 1.1)
+
+## Support
+
+For support or inquiries, please contact **support@xocat.online**
 
 ## License
 
