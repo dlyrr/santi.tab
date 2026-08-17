@@ -8,34 +8,153 @@ type RedditSearchResponse = {
   }
 }
 
-export async function fetchPosts(config: ConfigState) {
-  let posts: Array<RedditPost & { thumbnail?: string }> = []
+type Post = RedditPost & { thumbnail?: string }
+
+/** Thrown when a source can't be read, so the UI can offer a useful fix. */
+export class SourceError extends Error {
+  reason: "network" | "permission" | "empty"
+
+  constructor(reason: SourceError["reason"], message: string) {
+    super(message)
+    this.name = "SourceError"
+    this.reason = reason
+  }
+}
+
+const DEFAULT_SUBREDDITS = ["Animewallpaper"]
+const DEFAULT_LIMIT = 200
+
+/** Normalises a user-entered subreddit ("/r/Foo", "r/Foo", "Foo") to "Foo". */
+export const normalizeSubreddit = (value: string) =>
+  value
+    .trim()
+    .replace(/^https?:\/\/(www\.)?reddit\.com/i, "")
+    .replace(/^\/?r\//i, "")
+    .replace(/\/.*$/, "")
+    .trim()
+
+const dimensionsOf = (post: Post) => {
+  const source = post.preview?.images?.[0]?.source
+  if (!source?.width || !source?.height) return null
+  return { width: source.width, height: source.height }
+}
+
+/**
+ * Applies the user's size / orientation filters. Posts that don't expose
+ * preview metadata are always kept -- dropping them would silently throw away
+ * most of a listing just because reddit omitted the preview block.
+ */
+export const matchesFilters = (post: Post, source: ConfigState["source"]) => {
+  const dims = dimensionsOf(post)
+  if (!dims) return true
+
+  if (source.minWidth && dims.width < source.minWidth) return false
+  if (source.minHeight && dims.height < source.minHeight) return false
+
+  if (source.orientation === "landscape" && dims.width < dims.height)
+    return false
+  if (source.orientation === "portrait" && dims.height < dims.width)
+    return false
+
+  return true
+}
+
+/** Turns a plain list of image URLs into the post shape the app renders. */
+export const urlsToPosts = (urls: string[]): Post[] =>
+  urls
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .map((url, index) => ({
+      id: `custom-${index}`,
+      title: decodeURIComponent(url.split("/").pop() || `Image ${index + 1}`),
+      url,
+    }))
+
+async function fetchSubreddit(
+  subreddit: string,
+  config: ConfigState,
+  limit: number,
+  nsfw: boolean
+): Promise<Post[]> {
+  let posts: Post[] = []
   let after: string | null = null
 
-  while (posts.length < 200) {
+  while (posts.length < limit) {
     const query = new URLSearchParams({
       q: config.q.toString(),
       sort: config.sort.toString(),
       t: config.t.toString(),
       show: "all",
       restrict_sr: "1",
-      include_over_18: config.nsfw ? "on" : "off",
+      include_over_18: nsfw ? "on" : "off",
     })
     if (after) query.set("after", after)
 
-    const res = await fetch(
-      `https://www.reddit.com/r/Animewallpaper/search.json?${query}`,
-    )
-    const json = (await res.json()) as RedditSearchResponse
+    let json: RedditSearchResponse
+
+    try {
+      const res = await fetch(
+        `https://www.reddit.com/r/${subreddit}/search.json?${query}`,
+      )
+      json = (await res.json()) as RedditSearchResponse
+    } catch (error) {
+      throw new SourceError(
+        "permission",
+        `Could not reach r/${subreddit}: ${(error as Error).message}`
+      )
+    }
+
+    if (!json?.data?.children) {
+      throw new SourceError("network", `r/${subreddit} returned no listing`)
+    }
 
     posts = posts.concat(json.data.children.map((child) => child.data))
     after = json.data.after
     if (!after) break
   }
 
-  // Filter by NSFW if enabled
-  if (config.nsfw) posts = posts.filter((e) => e.thumbnail === "nsfw")
+  return posts
+}
+
+export async function fetchPosts(config: ConfigState) {
+  const source = config.source
+  const kind = source?.kind ?? "reddit"
+
+  if (kind === "color") return []
+  if (kind === "urls") return urlsToPosts(source?.urls ?? [])
+
+  const subreddits = (source?.subreddits?.length
+    ? source.subreddits
+    : DEFAULT_SUBREDDITS
+  )
+    .map(normalizeSubreddit)
+    .filter(Boolean)
+
+  const limit = config.settings?.fetchLimit || DEFAULT_LIMIT
+
+  // `nsfw` stays the legacy master switch; `nsfwMode` refines what to do with
+  // it. An old config with only `nsfw` keeps behaving exactly as it used to.
+  const nsfwMode = config.nsfw ? (source?.nsfwMode ?? "only") : "off"
+
+  let posts: Post[] = []
+
+  for (const subreddit of subreddits.length ? subreddits : DEFAULT_SUBREDDITS) {
+    posts = posts.concat(
+      await fetchSubreddit(subreddit, config, limit, nsfwMode !== "off")
+    )
+  }
+
+  if (nsfwMode === "only") posts = posts.filter((e) => e.thumbnail === "nsfw")
 
   posts = posts.filter((e) => e.url.includes("i.redd.it"))
-  return posts
+
+  if (source) posts = posts.filter((post) => matchesFilters(post, source))
+
+  // Multiple subreddits can surface the same crosspost twice.
+  const seen = new Set<string>()
+  return posts.filter((post) => {
+    if (seen.has(post.url)) return false
+    seen.add(post.url)
+    return true
+  })
 }

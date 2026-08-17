@@ -147,7 +147,7 @@ describe("Menu", () => {
     resetStores()
     const { user } = setup()
 
-    await user.click(screen.getByRole("button", { name: /settings/i }))
+    await user.click(screen.getByRole("button", { name: /appearance/i }))
     await user.click(screen.getByRole("button", { name: /set primary color to #ff6b6b/i }))
 
     expect(ConfigStore.theme.primary).toBe("#ff6b6b")
@@ -168,7 +168,7 @@ describe("Menu", () => {
     resetStores()
     const { user } = setup()
 
-    await user.click(screen.getByRole("button", { name: /settings/i }))
+    await user.click(screen.getByRole("button", { name: /appearance/i }))
 
     const dimSlider = document.querySelector(".dim-opacity-slider") as HTMLInputElement
     fireEvent.change(dimSlider, { target: { value: "0.5" } })
@@ -178,6 +178,7 @@ describe("Menu", () => {
       expect(document.querySelector(".range-picker-row strong")?.textContent).toBe("50%")
     })
 
+    await user.click(screen.getByRole("button", { name: /^behavior$/i }))
     await user.click(screen.getByRole("button", { name: /reroll jingle/i }))
     expect(ConfigStore.settings.soundEffects).toBe(false)
 

@@ -8,7 +8,7 @@ import "./styles/MenuButton.scss"
 const TIMEOUT_MS = 3000
 
 function MenuButton() {
-  const { isMenuVisible: isVisible } = useSnapshot(ConfigStore)
+  const { isMenuVisible: isVisible, layout } = useSnapshot(ConfigStore)
   const [isHovered, setIsHovered] = useState(true)
 
   useEffect(() => {
@@ -17,6 +17,10 @@ function MenuButton() {
     }, TIMEOUT_MS)
     return () => clearTimeout(timeout)
   }, [])
+
+  // Hiding the button doesn't disable the menu -- its keyboard shortcut and
+  // any already-open panel keep working.
+  if (!layout.showMenuButton) return null
 
   return (
     <div

@@ -9,42 +9,22 @@ import {
 } from "react-icons/fa"
 
 import { useSnapshot } from "valtio"
+import { LoadState, setLoaded, setShowRollOverlay } from "../stores/AppStore"
 import { clearCache } from "../stores/CacheStore"
 import {
   CONFIG_STATE_PICKABLE_FIELDS_MAP,
   ConfigStore,
   pickValue,
   toggle,
+  toggleMenu,
   toggleNsfw,
   type ConfigStatePickableFields,
 } from "../stores/ConfigStore"
+import { HistoryStore, toggleFavoriteAt } from "../stores/HistoryStore"
+import { downloadImage } from "../utils/download"
+import { isTypingTarget } from "../utils/keys"
+import { playRollSound } from "../utils/sound"
 import "./styles/Config.scss"
-
-import { LoadState, setLoaded, setShowRollOverlay } from "../stores/AppStore"
-
-function playRollSound() {
-  const AudioContextClass = window.AudioContext
-  if (!AudioContextClass) return
-  const audio = new AudioContextClass()
-  const notes = [880, 1174.66, 1567.98]
-
-  notes.forEach((frequency, index) => {
-    const start = audio.currentTime + index * 0.07
-    const gain = audio.createGain()
-    const oscillator = audio.createOscillator()
-
-    oscillator.type = "triangle"
-    oscillator.frequency.setValueAtTime(frequency, start)
-    gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(0.055, start + 0.01)
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09)
-
-    oscillator.connect(gain)
-    gain.connect(audio.destination)
-    oscillator.start(start)
-    oscillator.stop(start + 0.1)
-  })
-}
 
 const ValuePicker = ({
   valueKey,
@@ -87,7 +67,7 @@ function Config() {
   const rollOverlayTimeout = useRef<number | null>(null)
 
   const reroll = useCallback(() => {
-    if (config.settings.soundEffects) playRollSound()
+    if (config.settings.soundEffects) playRollSound(config.settings.volume)
     setIsRolling(false)
     setShowRollOverlay(false)
     if (rollOverlayTimeout.current) window.clearTimeout(rollOverlayTimeout.current)
@@ -103,7 +83,11 @@ function Config() {
     }
 
     setLoaded(LoadState.FETCH_NEW)
-  }, [config.settings.rerollFlash, config.settings.soundEffects])
+  }, [
+    config.settings.rerollFlash,
+    config.settings.soundEffects,
+    config.settings.volume,
+  ])
 
   useEffect(() => {
     if (!isRolling) return
@@ -125,7 +109,7 @@ function Config() {
         },
         isActive: config.nsfw,
         isDisabled: config.incognito,
-        // keyBinding: "KeyN",
+        keyBinding: config.keybinds.nsfw,
       },
       {
         id: "pin",
@@ -133,7 +117,7 @@ function Config() {
         action: () => toggle("pinned"),
         isActive: config.pinned,
         isDisabled: config.incognito,
-        keyBinding: "KeyP",
+        keyBinding: config.keybinds.pinned,
       },
       {
         id: "reroll",
@@ -141,26 +125,27 @@ function Config() {
         action: reroll,
         isActive: isRolling,
         isDisabled: config.incognito || config.pinned,
-        keyBinding: "KeyR",
+        keyBinding: config.keybinds.reroll,
       },
       {
         id: "incognito",
         icon: FaUserSecret,
         action: () => toggle("incognito"),
         isActive: config.incognito,
-        keyBinding: "KeyI",
+        keyBinding: config.keybinds.incognito,
       },
       {
         id: "hideGui",
         label: () => `${!config.hideGui ? "hide" : "show"} gui`,
         icon: config.hideGui ? FaEye : FaEyeSlash,
         action: () => toggle("hideGui"),
-        keyBinding: "KeyH",
+        keyBinding: config.keybinds.hideGui,
       },
     ],
     [
       config.hideGui,
       config.incognito,
+      config.keybinds,
       config.nsfw,
       config.pinned,
       isRolling,
@@ -175,13 +160,34 @@ function Config() {
     const action = (e: KeyboardEvent) => {
       if (e.repeat || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return
 
-      const button = buttons.find((btn) => btn.keyBinding === e.code)
-      if (button && !button.isDisabled) button.action()
+      // Never steal keys while the user is typing into the settings panel.
+      if (isTypingTarget(e.target)) return
+
+      const button = buttons.find(
+        (btn) => btn.keyBinding && btn.keyBinding === e.code
+      )
+      if (button && !button.isDisabled) {
+        button.action()
+        return
+      }
+
+      const { keybinds } = ConfigStore
+      const current = HistoryStore.history[HistoryStore.i]
+
+      if (keybinds.menu && e.code === keybinds.menu) toggleMenu()
+      else if (keybinds.favorite && e.code === keybinds.favorite)
+        toggleFavoriteAt(HistoryStore.i)
+      else if (keybinds.download && e.code === keybinds.download && current)
+        downloadImage(current.url, current.title)
+      else if (keybinds.openPost && e.code === keybinds.openPost && current)
+        window.open(current.link, "_blank", "noopener,noreferrer")
     }
 
     document.addEventListener("keydown", action)
     return () => document.removeEventListener("keydown", action)
   }, [config, buttons])
+
+  if (!config.layout.showControls) return null
 
   return (
     <div className="config">

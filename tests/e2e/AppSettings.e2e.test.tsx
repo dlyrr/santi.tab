@@ -44,9 +44,12 @@ async function renderLoadedApp() {
   return user
 }
 
-async function openSettings(user: ReturnType<typeof userEvent.setup>) {
+async function openSettings(
+  user: ReturnType<typeof userEvent.setup>,
+  tab: RegExp = /appearance/i,
+) {
   await user.click(screen.getByRole("button", { name: /show menu/i }))
-  await user.click(screen.getByRole("button", { name: /settings/i }))
+  await user.click(screen.getByRole("button", { name: tab }))
 }
 
 describe("App settings flows", () => {
@@ -126,7 +129,7 @@ describe("App settings flows", () => {
       expect(AppStore.loaded).toBe(LoadState.LOADED)
     })
 
-    await openSettings(user)
+    await openSettings(user, /^behavior$/i)
     await user.click(screen.getByRole("button", { name: /reroll jingle/i }))
     await user.click(screen.getByRole("button", { name: /large flash/i }))
 

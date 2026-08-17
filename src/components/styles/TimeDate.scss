@@ -1,6 +1,6 @@
 .time,
 .date {
-  font-family: "Montserrat", sans-serif;
+  font-family: var(--font-family);
 
   text-shadow: 0.075em 0.075em black;
   text-transform: uppercase;
@@ -9,11 +9,12 @@
 }
 
 .time {
-  font-size: 4rem;
+  font-size: calc(4rem * var(--ui-scale) * var(--clock-scale));
+  line-height: 1.1;
   margin-bottom: 8px;
 }
 
 .date {
-  font-size: 1.5rem;
+  font-size: calc(1.5rem * var(--ui-scale) * var(--clock-scale));
   margin-bottom: 28px;
 }

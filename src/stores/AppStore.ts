@@ -10,11 +10,14 @@ export type LoadState = (typeof LoadState)[keyof typeof LoadState]
 export type AppStore = {
   loaded: LoadState
   showRollOverlay: boolean
+  /** Human-readable reason the current source failed, or null when healthy. */
+  error: string | null
 }
 
 export const AppStore = proxy<AppStore>({
   loaded: LoadState.FETCH_NEW,
   showRollOverlay: false,
+  error: null,
 })
 
 export const setLoaded = (state: LoadState) => {
@@ -23,4 +26,8 @@ export const setLoaded = (state: LoadState) => {
 
 export const setShowRollOverlay = (show: boolean) => {
   AppStore.showRollOverlay = show
+}
+
+export const setError = (error: string | null) => {
+  AppStore.error = error
 }

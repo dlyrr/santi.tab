@@ -12,6 +12,7 @@ export type RedditPost = {
   id: string
   title: string
   url: string
+  subreddit?: string
   preview?: {
     images?: Array<{
       source?: RedditPreviewImage
@@ -73,13 +74,17 @@ export const createImageData = (
 
   if (title) parts.unshift(title)
 
+  // Posts synthesised from a user's own image URLs have no reddit permalink.
+  const isCustom = post.id.startsWith("custom-")
+
   return {
     title: parts.join(" • "),
     res: resolution || "",
     url: post.url,
     backgroundUrl: pickImageUrl(post, window.innerWidth, window.innerHeight),
     thumbnailUrl: pickImageUrl(post, 192, 108),
-    link: `https://redd.it/${post.id}`,
+    link: isCustom ? post.url : `https://redd.it/${post.id}`,
+    subreddit: post.subreddit,
     nums: [index, total],
   }
 }

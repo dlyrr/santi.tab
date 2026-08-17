@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useSnapshot } from "valtio"
 
-import './styles/TimeDate.scss'
+import { ConfigStore } from "../stores/ConfigStore"
+import { formatDate, greetingFor } from "../utils/datetime"
+
+import "./styles/TimeDate.scss"
 
 export const TimeDate = function () {
+  const { clock, layout } = useSnapshot(ConfigStore)
   const [now, setNow] = useState(new Date())
 
   useEffect(() => {
@@ -10,23 +15,28 @@ export const TimeDate = function () {
     return () => clearInterval(interval)
   }, [])
 
+  const locale = clock.locale.trim() || undefined
+
+  const time = now.toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "numeric",
+    second: clock.showSeconds ? "2-digit" : undefined,
+    hour12: clock.hourFormat === "auto" ? undefined : clock.hourFormat === "12",
+  })
+
   return (
     <>
-      <h1 className="time">
-        {now.toLocaleTimeString(undefined, {
-          hour: "numeric",
-          minute: "numeric",
-          second: undefined,
-        })}
-      </h1>
+      {layout.showGreeting && (
+        <p className="greeting">
+          {greetingFor(now.getHours(), clock.name.trim())}
+        </p>
+      )}
 
-      <h2 className="date">
-        {now.toLocaleDateString(undefined, {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        })}
-      </h2>
+      {layout.showClock && <h1 className="time">{time}</h1>}
+
+      {layout.showDate && (
+        <h2 className="date">{formatDate(now, clock.dateStyle, locale)}</h2>
+      )}
     </>
   )
 }

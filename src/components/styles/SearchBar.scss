@@ -1,0 +1,58 @@
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  box-sizing: border-box;
+  width: min(520px, 100%);
+  margin-bottom: 20px;
+  padding: 12px 18px;
+
+  border: 1px solid rgba(white, 0.22);
+  border-radius: var(--radius);
+  background: rgba(black, 0.28);
+  backdrop-filter: blur(18px);
+
+  color: rgba(white, 0.7);
+
+  transition:
+    border-color calc(150ms * var(--anim-scale)) ease,
+    background-color calc(150ms * var(--anim-scale)) ease;
+
+  &:focus-within {
+    border-color: var(--primary);
+    background: rgba(black, 0.4);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+
+    border: none;
+    background: none;
+    outline: none;
+
+    color: white;
+    font-family: var(--font-family);
+    font-size: 0.95em;
+    font-weight: 500;
+
+    &::placeholder {
+      color: rgba(white, 0.5);
+    }
+
+    // Chromium's built-in clear button clashes with the glass styling.
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+  }
+}
+
+[data-align="center"] .search-bar {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+[data-align="right"] .search-bar {
+  margin-left: auto;
+}

@@ -1,29 +1,40 @@
 {
-  "name": "atarashii-tab",
+  "name": "santi-tab",
   "private": true,
-  "version": "0.1.10",
+  "version": "1.0.0",
   "type": "module",
-  "description": "Displays anime wallpapers from r/Animewallpaper on your new tab page",
-  "homepage": "https://github.com/cf12/atarashii-tab#readme",
+  "description": "A ridiculously customizable new tab page for Chromium and Firefox",
+  "homepage": "https://github.com/dlyrr/santi.tab#readme",
   "bugs": {
-    "url": "https://github.com/cf12/atarashii-tab/issues"
+    "url": "https://github.com/dlyrr/santi.tab/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cf12/atarashii-tab.git"
+    "url": "git+https://github.com/dlyrr/santi.tab.git"
   },
   "license": "MIT",
   "scripts": {
-    "dev:watch": "vite build --mode development --watch",
     "dev": "vite",
+    "dev:watch": "vite build --mode development --watch",
     "build": "vite build",
-    "build:strict": "tsc -b && vite build",
+    "build:firefox": "cross-env TARGET=firefox vite build",
+    "build:all": "npm run build && npm run build:firefox",
+    "build:strict": "tsc -b && npm run build:all",
+    "package": "npm run build:all && npm run zip",
+    "zip": "npm run zip:chromium && npm run zip:firefox",
+    "zip:chromium": "bestzip santi.tab-chromium.zip dist/*",
+    "zip:firefox": "bestzip santi.tab-firefox.zip dist-firefox/*",
+    "fonts": "node scripts/fetch-fonts.mjs",
+    "icons": "node scripts/make-icons.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
+    "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:ui-coverage": "vitest --ui --coverage",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "screenshots": "node scripts/screenshots.mjs",
+    "lint:ext": "npm run build:firefox && web-ext lint --source-dir=dist-firefox"
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -35,6 +46,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^26.2.0",
     "@types/nprogress": "^0.2.3",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
@@ -43,6 +55,8 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.21",
+    "bestzip": "^3.0.2",
+    "cross-env": "^10.1.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -56,13 +70,14 @@
     "react-icons": "^4.12.0",
     "react-spinners": "^0.17.0",
     "sass-embedded": "^1.91.0",
+    "sharp": "^0.35.3",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "valtio": "^2.1.7",
     "valtio-persist": "^2.2.4",
     "vite": "^7.1.2",
     "vite-plugin-static-copy": "^3.1.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "web-ext": "^10.6.0"
   }
 }
-

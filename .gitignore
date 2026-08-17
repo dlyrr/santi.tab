@@ -9,8 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-firefox
 dist-ssr
 *.local
+
+# Packaged extensions
+santi.tab-*.zip
 
 # Editor directories and files
 .vscode/*

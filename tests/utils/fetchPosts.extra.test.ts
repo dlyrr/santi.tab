@@ -1,0 +1,203 @@
+import { describe, expect, it, vi } from "vitest"
+import {
+  fetchPosts,
+  matchesFilters,
+  normalizeSubreddit,
+  SourceError,
+  urlsToPosts,
+} from "../../src/utils/fetchPosts"
+import type { ConfigState } from "../../src/stores/ConfigStore"
+import { DEFAULT_CONFIG } from "../../src/stores/ConfigStore"
+import { makeListing } from "../helpers"
+
+const config = (overrides: Partial<ConfigState> = {}) =>
+  ({
+    ...structuredClone(DEFAULT_CONFIG),
+    ...overrides,
+  }) as ConfigState
+
+const withSource = (source: Partial<ConfigState["source"]>) =>
+  config({ source: { ...structuredClone(DEFAULT_CONFIG.source), ...source } })
+
+describe("normalizeSubreddit", () => {
+  it("accepts every shape a user might paste", () => {
+    expect(normalizeSubreddit("Animewallpaper")).toBe("Animewallpaper")
+    expect(normalizeSubreddit("r/wallpapers")).toBe("wallpapers")
+    expect(normalizeSubreddit("/r/wallpapers")).toBe("wallpapers")
+    expect(normalizeSubreddit("  /r/EarthPorn/  ")).toBe("EarthPorn")
+    expect(normalizeSubreddit("https://www.reddit.com/r/pics/")).toBe("pics")
+    expect(normalizeSubreddit("   ")).toBe("")
+  })
+})
+
+describe("matchesFilters", () => {
+  const post = (width: number, height: number) => ({
+    id: "x",
+    title: "x",
+    url: "https://i.redd.it/x.jpg",
+    preview: { images: [{ source: { url: "u", width, height } }] },
+  })
+
+  it("keeps posts with no preview metadata", () => {
+    const bare = { id: "x", title: "x", url: "https://i.redd.it/x.jpg" }
+    expect(
+      matchesFilters(bare, { ...DEFAULT_CONFIG.source, minWidth: 5000 })
+    ).toBe(true)
+  })
+
+  it("applies minimum size", () => {
+    const source = { ...DEFAULT_CONFIG.source, minWidth: 1920, minHeight: 1080 }
+
+    expect(matchesFilters(post(1920, 1080), source)).toBe(true)
+    expect(matchesFilters(post(1280, 1080), source)).toBe(false)
+    expect(matchesFilters(post(1920, 720), source)).toBe(false)
+  })
+
+  it("applies orientation", () => {
+    const landscape = {
+      ...DEFAULT_CONFIG.source,
+      orientation: "landscape" as const,
+    }
+    const portrait = {
+      ...DEFAULT_CONFIG.source,
+      orientation: "portrait" as const,
+    }
+
+    expect(matchesFilters(post(1920, 1080), landscape)).toBe(true)
+    expect(matchesFilters(post(1080, 1920), landscape)).toBe(false)
+    expect(matchesFilters(post(1080, 1920), portrait)).toBe(true)
+    expect(matchesFilters(post(1920, 1080), portrait)).toBe(false)
+  })
+})
+
+describe("urlsToPosts", () => {
+  it("turns plain URLs into renderable posts and skips blanks", () => {
+    const posts = urlsToPosts([
+      "https://example.com/a%20b.jpg",
+      "   ",
+      "https://example.com/c.png",
+    ])
+
+    expect(posts).toHaveLength(2)
+    expect(posts[0]).toMatchObject({
+      id: "custom-0",
+      title: "a b.jpg",
+      url: "https://example.com/a%20b.jpg",
+    })
+  })
+})
+
+describe("fetchPosts sources", () => {
+  it("returns nothing for a colour background without hitting the network", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    expect(await fetchPosts(withSource({ kind: "color" }))).toEqual([])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("uses the user's own URLs without hitting the network", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    const posts = await fetchPosts(
+      withSource({ kind: "urls", urls: ["https://example.com/a.jpg"] })
+    )
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(posts).toHaveLength(1)
+  })
+
+  it("queries every configured subreddit and de-duplicates crossposts", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        json: async () =>
+          makeListing([{ url: "https://i.redd.it/shared.jpg" }], null),
+      })
+      .mockResolvedValueOnce({
+        json: async () =>
+          makeListing(
+            [
+              { url: "https://i.redd.it/shared.jpg" },
+              { url: "https://i.redd.it/unique.jpg" },
+            ],
+            null
+          ),
+      })
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    const posts = await fetchPosts(
+      withSource({ subreddits: ["wallpapers", "EarthPorn"] })
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toContain("/r/wallpapers/search.json")
+    expect(fetchMock.mock.calls[1][0]).toContain("/r/EarthPorn/search.json")
+    expect(posts.map((post) => post.url)).toEqual([
+      "https://i.redd.it/shared.jpg",
+      "https://i.redd.it/unique.jpg",
+    ])
+  })
+
+  it("stops paginating once the configured fetch limit is reached", async () => {
+    const page = makeListing(
+      Array.from({ length: 30 }, (_, index) => ({
+        url: `https://i.redd.it/${index}.jpg`,
+      })),
+      "next"
+    )
+
+    const fetchMock = vi.fn().mockResolvedValue({ json: async () => page })
+    vi.stubGlobal("fetch", fetchMock)
+
+    await fetchPosts(
+      config({
+        settings: { ...DEFAULT_CONFIG.settings, fetchLimit: 25 },
+      })
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("includes but does not require NSFW posts in 'include' mode", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: async () =>
+          makeListing(
+            [
+              { url: "https://i.redd.it/nsfw.jpg", thumbnail: "nsfw" },
+              { url: "https://i.redd.it/sfw.jpg", thumbnail: "default" },
+            ],
+            null
+          ),
+      })
+    )
+
+    const posts = await fetchPosts(
+      config({ nsfw: true, source: { ...DEFAULT_CONFIG.source, nsfwMode: "include" } })
+    )
+
+    expect(posts).toHaveLength(2)
+  })
+
+  it("raises a SourceError when the request fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("NetworkError"))
+    )
+
+    await expect(fetchPosts(config())).rejects.toBeInstanceOf(SourceError)
+  })
+
+  it("raises a SourceError when reddit returns something unexpected", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ json: async () => ({ error: 403 }) })
+    )
+
+    await expect(fetchPosts(config())).rejects.toThrow(/no listing/)
+  })
+})

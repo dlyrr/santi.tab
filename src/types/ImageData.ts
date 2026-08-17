@@ -7,6 +7,7 @@ export type ImageData = {
 
   backgroundUrl?: string
   thumbnailUrl?: string
+  subreddit?: string
 
   favorite?: boolean
 }

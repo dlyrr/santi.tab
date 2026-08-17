@@ -1,6 +1,5 @@
 import "@testing-library/jest-dom"
 import { act, fireEvent, render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import MenuButton from "../../src/components/MenuButton"
 import { ConfigStore } from "../../src/stores/ConfigStore"
@@ -8,7 +7,6 @@ import { ConfigStore } from "../../src/stores/ConfigStore"
 describe("MenuButton visibility timing", () => {
   it("hides after its initial timeout and can be shown by hovering", async () => {
     vi.useFakeTimers()
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
     render(<MenuButton />)
 

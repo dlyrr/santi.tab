@@ -1,28 +1,19 @@
 import { AppStore, LoadState } from "../src/stores/AppStore"
 import { CacheStore } from "../src/stores/CacheStore"
-import { ConfigStore } from "../src/stores/ConfigStore"
+import { resetConfig } from "../src/stores/ConfigStore"
 import { HistoryStore } from "../src/stores/HistoryStore"
 import type { ImageData } from "../src/types/ImageData"
 
 export function resetStores() {
   AppStore.loaded = LoadState.FETCH_NEW
   AppStore.showRollOverlay = false
+  AppStore.error = null
 
   CacheStore.lastUpdated = -1
+  CacheStore.lastRolled = -1
   CacheStore.data = []
 
-  Object.assign(ConfigStore, {
-    num: undefined,
-    q: `flair:"Desktop"`,
-    sort: "top",
-    t: "year",
-    nsfw: false,
-    incognito: false,
-    hideGui: false,
-    pinned: false,
-    isMenuVisible: false,
-  })
-  ConfigStore.theme.primary = "#ffc400"
+  resetConfig()
 
   HistoryStore.history = []
   HistoryStore.i = -1
