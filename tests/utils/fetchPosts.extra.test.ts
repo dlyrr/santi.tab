@@ -9,7 +9,7 @@ import {
 } from "../../src/utils/fetchPosts"
 import type { ConfigState } from "../../src/stores/ConfigStore"
 import { DEFAULT_CONFIG } from "../../src/stores/ConfigStore"
-import { makeListing } from "../helpers"
+import { makeListing, okJson } from "../helpers"
 
 const config = (overrides: Partial<ConfigState> = {}) =>
   ({
@@ -156,20 +156,14 @@ describe("fetchPosts sources", () => {
   it("queries every configured subreddit and de-duplicates crossposts", async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({
-        json: async () =>
-          makeListing([{ url: "https://i.redd.it/shared.jpg" }], null),
-      })
-      .mockResolvedValueOnce({
-        json: async () =>
-          makeListing(
+      .mockResolvedValueOnce(okJson(makeListing([{ url: "https://i.redd.it/shared.jpg" }], null)))
+      .mockResolvedValueOnce(okJson(makeListing(
             [
               { url: "https://i.redd.it/shared.jpg" },
               { url: "https://i.redd.it/unique.jpg" },
             ],
             null
-          ),
-      })
+          )))
 
     vi.stubGlobal("fetch", fetchMock)
 
@@ -194,7 +188,7 @@ describe("fetchPosts sources", () => {
       "next"
     )
 
-    const fetchMock = vi.fn().mockResolvedValue({ json: async () => page })
+    const fetchMock = vi.fn().mockResolvedValue(okJson(page))
     vi.stubGlobal("fetch", fetchMock)
 
     await fetchPosts(
@@ -209,16 +203,13 @@ describe("fetchPosts sources", () => {
   it("includes but does not require NSFW posts in 'include' mode", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        json: async () =>
-          makeListing(
+      vi.fn().mockResolvedValue(okJson(makeListing(
             [
               { url: "https://i.redd.it/nsfw.jpg", thumbnail: "nsfw" },
               { url: "https://i.redd.it/sfw.jpg", thumbnail: "default" },
             ],
             null
-          ),
-      })
+          )))
     )
 
     const posts = await fetchPosts(
@@ -232,9 +223,7 @@ describe("fetchPosts sources", () => {
     const fetchMock = vi
       .fn()
       // r/good succeeds...
-      .mockResolvedValueOnce({
-        json: async () => makeListing([{ url: "https://i.redd.it/ok.jpg" }], null),
-      })
+      .mockResolvedValueOnce(okJson(makeListing([{ url: "https://i.redd.it/ok.jpg" }], null)))
       // ...r/banned is unreachable.
       .mockRejectedValueOnce(new Error("NetworkError"))
 
@@ -260,6 +249,46 @@ describe("fetchPosts sources", () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
+  it("explains a rate limit instead of leaking a JSON parser error", async () => {
+    // Reddit answers blocks with an HTML page, not JSON.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => "<!doctype html><html>Blocked</html>",
+      })
+    )
+
+    await expect(fetchPosts(config())).rejects.toThrow(/rate-limiting/i)
+    await expect(fetchPosts(config())).rejects.not.toThrow(/JSON/i)
+  })
+
+  it("reports the status for a private or banned subreddit", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }))
+
+    await expect(fetchPosts(withSource({ subreddits: ["secret"] }))).rejects.toThrow(
+      /r\/secret returned 403/
+    )
+  })
+
+  it("retries a 429 before giving up", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 429 })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () =>
+          JSON.stringify(makeListing([{ url: "https://i.redd.it/a.jpg" }], null)),
+      })
+
+    vi.stubGlobal("fetch", fetchMock)
+
+    const posts = await fetchPosts(config())
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(posts).toHaveLength(1)
+  })
+
   it("raises a SourceError when the request fails", async () => {
     vi.stubGlobal(
       "fetch",
@@ -272,7 +301,7 @@ describe("fetchPosts sources", () => {
   it("raises a SourceError when reddit returns something unexpected", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ json: async () => ({ error: 403 }) })
+      vi.fn().mockResolvedValue(okJson(({ error: 403 })))
     )
 
     await expect(fetchPosts(config())).rejects.toThrow(/no listing/)

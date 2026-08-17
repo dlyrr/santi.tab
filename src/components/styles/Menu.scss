@@ -724,3 +724,100 @@
   display: flex;
   gap: 6px;
 }
+
+.menu .block-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 9px;
+    background: rgba(white, 0.07);
+    padding: 6px 8px;
+
+    &.off {
+      opacity: 0.5;
+    }
+  }
+
+  .block-move {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 2px;
+
+    button {
+      justify-content: center;
+      border-radius: 5px;
+      padding: 2px 6px;
+
+      &:disabled {
+        opacity: 0.3;
+      }
+    }
+  }
+
+  .block-toggle {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(white, 0.6);
+    font-size: 0.82rem;
+    padding: 7px 9px;
+    text-align: left;
+
+    &.active {
+      background: transparent;
+      color: white;
+    }
+
+    // A dot standing in for the on/off state, so the row reads at a glance.
+    &::before {
+      content: "";
+      flex-shrink: 0;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: currentColor;
+      opacity: 0.35;
+    }
+
+    &.active::before {
+      background: var(--primary);
+      opacity: 1;
+    }
+  }
+
+  .block-align {
+    display: flex;
+    flex-shrink: 0;
+    gap: 3px;
+
+    button {
+      border-radius: 6px;
+      background-color: rgba(white, 0.1);
+      color: rgba(white, 0.66);
+      font-size: 0.7rem;
+      padding: 5px 7px;
+
+      &.active {
+        background-color: var(--primary);
+        color: black;
+      }
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .menu .block-editor li {
+    flex-wrap: wrap;
+  }
+}

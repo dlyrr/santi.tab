@@ -31,6 +31,15 @@ export function makePost(overrides: Record<string, unknown> = {}) {
   }
 }
 
+/**
+ * A minimal stand-in for a successful `Response`. fetchPosts checks `ok` and
+ * reads the body with `text()` so it can tell reddit's HTML block pages apart
+ * from real data, so mocks have to provide both.
+ */
+export function okJson(body: unknown) {
+  return { ok: true, status: 200, text: async () => JSON.stringify(body) }
+}
+
 export function makeListing(
   children: Array<Record<string, unknown>>,
   after: string | null = null,

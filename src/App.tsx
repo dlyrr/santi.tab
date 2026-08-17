@@ -10,7 +10,7 @@ import QuickLinks from "./components/QuickLinks"
 import QuoteWidget from "./components/Quote"
 import SearchBar from "./components/SearchBar"
 import TodoList from "./components/TodoList"
-import { TimeDate } from "./components/TimeDate"
+import { Clock, DateLine, Greeting } from "./components/TimeDate"
 
 import pkg from "../package.json"
 
@@ -24,7 +24,12 @@ import {
   setWarning,
 } from "./stores/AppStore"
 import { CacheStore } from "./stores/CacheStore"
-import { ConfigStore, type ConfigState } from "./stores/ConfigStore"
+import {
+  ConfigStore,
+  isBlockVisible,
+  resolveBlocks,
+  type ConfigState,
+} from "./stores/ConfigStore"
 import {
   HistoryStore,
   pushPostToHistory,
@@ -161,6 +166,9 @@ function App() {
       : undefined
 
   const { layout, theme, source } = config
+  const blocks = resolveBlocks(layout.blocks).filter(({ id }) =>
+    isBlockVisible(config as ConfigState, id)
+  )
   const isColorOnly = source.kind === "color"
   const attributionSub = data?.subreddit || source.subreddits[0] || "wallpapers"
 
@@ -192,19 +200,36 @@ function App() {
           <div className="stage">
             <header>
               <div className="header-left">
-                <TimeDate />
+                {blocks.map(({ id, align }) => {
+                  const node = {
+                    greeting: <Greeting />,
+                    clock: <Clock />,
+                    date: <DateLine />,
+                    details: (
+                      <div className="details hideable">
+                        <p className="to-load to-delay-1">{data?.title}</p>
+                        <p className="to-load to-delay-2">{data?.res}</p>
+                      </div>
+                    ),
+                    search: <SearchBar />,
+                    shortcuts: <QuickLinks />,
+                    quote: <QuoteWidget />,
+                    todo: <TodoList />,
+                  }[id]
 
-                {layout.showDetails && (
-                  <div className="details hideable">
-                    <p className="to-load to-delay-1">{data?.title}</p>
-                    <p className="to-load to-delay-2">{data?.res}</p>
-                  </div>
-                )}
-
-                <SearchBar />
-                <QuickLinks />
-                <QuoteWidget />
-                <TodoList />
+                  return (
+                    <div
+                      key={id}
+                      className="block"
+                      data-block={id}
+                      // "inherit" is resolved here so the stylesheet only ever
+                      // deals with a concrete side.
+                      data-block-align={align === "inherit" ? layout.align : align}
+                    >
+                      {node}
+                    </div>
+                  )
+                })}
               </div>
             </header>
           </div>

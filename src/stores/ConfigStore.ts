@@ -84,6 +84,7 @@ export const MENU_TABS = [
   "history",
   "wallpaper",
   "appearance",
+  "layout",
   "clock",
   "widgets",
   "behavior",
@@ -93,6 +94,41 @@ export const MENU_TABS = [
 export type MenuTab = (typeof MENU_TABS)[number]
 
 export const DEFAULT_SETTINGS_TAB: MenuTab = "appearance"
+
+/**
+ * The stackable pieces of the new tab, in default top-to-bottom order. Their
+ * order and per-piece alignment live in `layout.blocks`; visibility stays on
+ * the existing `layout.show*` / `widgets.*.enabled` flags so nothing about an
+ * upgraded config changes meaning.
+ */
+export const LAYOUT_BLOCK_IDS = [
+  "greeting",
+  "clock",
+  "date",
+  "details",
+  "search",
+  "shortcuts",
+  "quote",
+  "todo",
+] as const
+
+export type BlockId = (typeof LAYOUT_BLOCK_IDS)[number]
+
+/** "inherit" follows the page-wide alignment; the rest override it. */
+export type BlockAlign = "inherit" | "left" | "center" | "right"
+
+export type LayoutBlock = { id: BlockId; align: BlockAlign }
+
+export const BLOCK_LABELS: Record<BlockId, string> = {
+  greeting: "Greeting",
+  clock: "Clock",
+  date: "Date",
+  details: "Wallpaper details",
+  search: "Search bar",
+  shortcuts: "Shortcuts",
+  quote: "Quote",
+  todo: "To-do list",
+}
 
 export type Corner = "left" | "center" | "right"
 export type Vertical = "top" | "center" | "bottom"
@@ -171,6 +207,8 @@ export type ConfigState = {
     align: Corner
     vertical: Vertical
     padding: number
+    /** Order and per-piece alignment. Visibility stays on the flags below. */
+    blocks: LayoutBlock[]
     showClock: boolean
     showDate: boolean
     showGreeting: boolean
@@ -296,6 +334,7 @@ export const DEFAULT_CONFIG: ConfigState = {
     align: "left",
     vertical: "top",
     padding: 3,
+    blocks: LAYOUT_BLOCK_IDS.map((id) => ({ id, align: "inherit" as BlockAlign })),
     showClock: true,
     showDate: true,
     showGreeting: false,
@@ -521,6 +560,102 @@ export const setFlair = (flair: string) => {
 // Not security-sensitive -- just needs to be stable per row for React keys.
 const rowId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+
+/**
+ * Repairs a persisted block list: drops ids we no longer know, de-duplicates,
+ * and appends any block added in a later version. Without this, a config saved
+ * before a new widget existed would render that widget nowhere at all.
+ */
+export const resolveBlocks = (blocks: readonly LayoutBlock[] = []) => {
+  const seen = new Set<BlockId>()
+  const resolved: LayoutBlock[] = []
+
+  for (const block of blocks) {
+    if (!LAYOUT_BLOCK_IDS.includes(block?.id) || seen.has(block.id)) continue
+
+    seen.add(block.id)
+    resolved.push({ id: block.id, align: block.align ?? "inherit" })
+  }
+
+  for (const id of LAYOUT_BLOCK_IDS) {
+    if (!seen.has(id)) resolved.push({ id, align: "inherit" })
+  }
+
+  return resolved
+}
+
+export const setBlockAlign = (id: BlockId, align: BlockAlign) => {
+  const blocks = resolveBlocks(ConfigStore.layout.blocks)
+  const block = blocks.find((entry) => entry.id === id)
+  if (!block) return
+
+  block.align = align
+  ConfigStore.layout.blocks = blocks
+}
+
+/** Moves a block up (-1) or down (+1); a no-op at either end. */
+export const moveBlock = (id: BlockId, delta: number) => {
+  const blocks = resolveBlocks(ConfigStore.layout.blocks)
+  const from = blocks.findIndex((entry) => entry.id === id)
+  const to = from + delta
+
+  if (from < 0 || to < 0 || to >= blocks.length) return
+
+  const [moved] = blocks.splice(from, 1)
+  blocks.splice(to, 0, moved)
+  ConfigStore.layout.blocks = blocks
+}
+
+/** Where each block's on/off switch actually lives. */
+export const isBlockVisible = (config: ConfigState, id: BlockId): boolean => {
+  switch (id) {
+    case "greeting":
+      return config.layout.showGreeting
+    case "clock":
+      return config.layout.showClock
+    case "date":
+      return config.layout.showDate
+    case "details":
+      return config.layout.showDetails
+    case "search":
+      return config.widgets.search.enabled
+    case "shortcuts":
+      return config.widgets.quickLinks.enabled
+    case "quote":
+      return config.widgets.quotes.enabled
+    case "todo":
+      return config.widgets.todo.enabled
+  }
+}
+
+export const setBlockVisible = (id: BlockId, visible: boolean) => {
+  switch (id) {
+    case "greeting":
+      ConfigStore.layout.showGreeting = visible
+      break
+    case "clock":
+      ConfigStore.layout.showClock = visible
+      break
+    case "date":
+      ConfigStore.layout.showDate = visible
+      break
+    case "details":
+      ConfigStore.layout.showDetails = visible
+      break
+    case "search":
+      ConfigStore.widgets.search.enabled = visible
+      break
+    case "shortcuts":
+      ConfigStore.widgets.quickLinks.enabled = visible
+      break
+    case "quote":
+      ConfigStore.widgets.quotes.enabled = visible
+      break
+    case "todo":
+      ConfigStore.widgets.todo.enabled = visible
+      break
+  }
+}
 
 export const createQuickLink = (title: string, url: string): QuickLink => ({
   id: rowId(),

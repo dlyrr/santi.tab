@@ -12,7 +12,7 @@ type Post = RedditPost & { thumbnail?: string }
 
 /** Thrown when a source can't be read, so the UI can offer a useful fix. */
 export class SourceError extends Error {
-  reason: "network" | "permission" | "empty"
+  reason: "network" | "permission" | "blocked" | "empty"
 
   constructor(reason: SourceError["reason"], message: string) {
     super(message)
@@ -112,6 +112,72 @@ export function buildListingUrl(
   return `https://www.reddit.com/r/${subreddit}/${listing}.json?${query}`
 }
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * One listing request, with the failure modes reddit actually produces mapped
+ * to messages a person can act on.
+ *
+ * Reddit answers rate limits and blocks with an HTML page, not JSON. Parsing
+ * that blindly used to surface "JSON.parse: unexpected character at line 1
+ * column 1", which tells the user nothing about what went wrong.
+ */
+async function fetchListing(
+  url: string,
+  subreddit: string,
+  attempt = 0
+): Promise<RedditSearchResponse> {
+  let res: Response
+
+  try {
+    res = await fetch(url)
+  } catch {
+    throw new SourceError(
+      "network",
+      `Couldn't reach r/${subreddit} — check your connection`
+    )
+  }
+
+  if (!res.ok) {
+    // Rate limits and hiccups are usually over in a moment; everything else
+    // won't improve by asking again.
+    if ((res.status === 429 || res.status >= 500) && attempt < 2) {
+      await delay(600 * (attempt + 1))
+      return fetchListing(url, subreddit, attempt + 1)
+    }
+
+    if (res.status === 429) {
+      throw new SourceError(
+        "blocked",
+        `Reddit is rate-limiting requests (429) — try again in a minute`
+      )
+    }
+
+    if (res.status === 403 || res.status === 404) {
+      throw new SourceError(
+        "blocked",
+        `r/${subreddit} returned ${res.status} — it may be private, banned, misspelled, or blocking this request`
+      )
+    }
+
+    throw new SourceError(
+      "network",
+      `r/${subreddit} returned HTTP ${res.status}`
+    )
+  }
+
+  const body = await res.text()
+
+  try {
+    return JSON.parse(body) as RedditSearchResponse
+  } catch {
+    throw new SourceError(
+      "blocked",
+      `Reddit sent a page instead of data for r/${subreddit} — it's likely rate-limiting you. Try again shortly.`
+    )
+  }
+}
+
 async function fetchSubreddit(
   subreddit: string,
   config: ConfigState,
@@ -122,17 +188,10 @@ async function fetchSubreddit(
   let after: string | null = null
 
   while (posts.length < limit) {
-    let json: RedditSearchResponse
-
-    try {
-      const res = await fetch(buildListingUrl(subreddit, config, nsfw, after))
-      json = (await res.json()) as RedditSearchResponse
-    } catch (error) {
-      throw new SourceError(
-        "permission",
-        `Could not reach r/${subreddit}: ${(error as Error).message}`
-      )
-    }
+    const json = await fetchListing(
+      buildListingUrl(subreddit, config, nsfw, after),
+      subreddit
+    )
 
     if (!json?.data?.children) {
       throw new SourceError("network", `r/${subreddit} returned no listing`)

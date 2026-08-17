@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from "vitest"
 import { fetchPosts } from "../../src/utils/fetchPosts"
-import { makeListing } from "../helpers"
+import { makeListing, okJson } from "../helpers"
 
 describe("fetchPosts", () => {
   it("builds the query, paginates, and filters image posts", async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ json: async () => makeListing([
+      .mockResolvedValueOnce(okJson(makeListing([
         { url: "https://i.redd.it/1.jpg", thumbnail: "default" },
         { url: "https://example.com/skip.jpg", thumbnail: "default" },
-      ], "after-1") })
-      .mockResolvedValueOnce({ json: async () => makeListing([
+      ], "after-1")))
+      .mockResolvedValueOnce(okJson(makeListing([
         { url: "https://i.redd.it/2.jpg", thumbnail: "default" },
-      ], null) })
+      ], null)))
 
     vi.stubGlobal("fetch", fetchMock)
 
@@ -38,13 +38,11 @@ describe("fetchPosts", () => {
   })
 
   it("filters to nsfw i.redd.it posts when nsfw is enabled", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce({
-      json: async () => makeListing([
+    const fetchMock = vi.fn().mockResolvedValueOnce(okJson(makeListing([
         { url: "https://i.redd.it/nsfw.jpg", thumbnail: "nsfw" },
         { url: "https://i.redd.it/sfw.jpg", thumbnail: "default" },
         { url: "https://example.com/nsfw.jpg", thumbnail: "nsfw" },
-      ], null),
-    })
+      ], null)))
 
     vi.stubGlobal("fetch", fetchMock)
 

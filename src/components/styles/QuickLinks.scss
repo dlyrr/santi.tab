@@ -66,11 +66,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-[data-align="center"] .quick-links {
-  justify-content: center;
-}
-
-[data-align="right"] .quick-links {
-  justify-content: flex-end;
-}

@@ -6,6 +6,7 @@ import {
   FaDownload,
   FaHistory,
   FaImage,
+  FaThLarge,
   FaKeyboard,
   FaPalette,
   FaRegClock,
@@ -29,6 +30,7 @@ import AppearancePanel from "./settings/AppearancePanel"
 import BehaviorPanel from "./settings/BehaviorPanel"
 import ClockPanel from "./settings/ClockPanel"
 import DataPanel from "./settings/DataPanel"
+import LayoutPanel from "./settings/LayoutPanel"
 import WallpaperPanel from "./settings/WallpaperPanel"
 import WidgetsPanel from "./settings/WidgetsPanel"
 
@@ -40,6 +42,7 @@ const TABS: ReadonlyArray<{
   { id: "history", label: "History", icon: FaHistory },
   { id: "wallpaper", label: "Wallpaper", icon: FaImage },
   { id: "appearance", label: "Appearance", icon: FaPalette },
+  { id: "layout", label: "Layout", icon: FaThLarge },
   { id: "clock", label: "Clock", icon: FaRegClock },
   { id: "widgets", label: "Widgets", icon: FaCog },
   { id: "behavior", label: "Behavior", icon: FaKeyboard },
@@ -49,6 +52,7 @@ const TABS: ReadonlyArray<{
 const PANELS: Record<Exclude<MenuTab, "history">, ComponentType> = {
   wallpaper: WallpaperPanel,
   appearance: AppearancePanel,
+  layout: LayoutPanel,
   clock: ClockPanel,
   widgets: WidgetsPanel,
   behavior: BehaviorPanel,

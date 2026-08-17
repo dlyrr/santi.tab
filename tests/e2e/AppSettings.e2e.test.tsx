@@ -9,6 +9,9 @@ import { fetchPosts } from "../../src/utils/fetchPosts"
 import { makePost } from "../helpers"
 
 vi.mock("../../src/components/TimeDate", () => ({
+  Greeting: () => null,
+  Clock: () => <div>Mock time</div>,
+  DateLine: () => null,
   TimeDate: () => <div>Mock time</div>,
   default: () => <div>Mock time</div>,
 }))

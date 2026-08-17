@@ -163,27 +163,6 @@ button {
     padding-bottom: 2rem;
   }
 
-  // Horizontal placement. The controls are pinned to the corner separately so
-  // "center" really means centred on the page, not centred in what's left.
-  //
-  // These deliberately match the specificity of the `.header-left` rule below
-  // -- an earlier version used a shorter selector and silently lost to it, so
-  // picking "center" did nothing.
-  &[data-align="left"] > .stage > header .header-left {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  &[data-align="center"] > .stage > header .header-left {
-    align-items: center;
-    text-align: center;
-  }
-
-  &[data-align="right"] > .stage > header .header-left {
-    align-items: flex-end;
-    text-align: right;
-  }
-
   & > .stage > header {
     display: flex;
     justify-content: space-between;
@@ -266,6 +245,43 @@ button {
         margin: 0 2px;
         margin-bottom: 2px;
       }
+    }
+  }
+}
+
+// Each stackable piece gets its own row, so it can sit on a different side
+// from its neighbours -- the clock left while everything else is centred, say.
+// App resolves "inherit" to a concrete side before it reaches the DOM.
+.block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+
+  &[data-block-align="left"] {
+    align-items: flex-start;
+    text-align: left;
+
+    .quick-links {
+      justify-content: flex-start;
+    }
+  }
+
+  &[data-block-align="center"] {
+    align-items: center;
+    text-align: center;
+
+    .quick-links {
+      justify-content: center;
+    }
+  }
+
+  &[data-block-align="right"] {
+    align-items: flex-end;
+    text-align: right;
+
+    .quick-links {
+      justify-content: flex-end;
     }
   }
 }
