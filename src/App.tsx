@@ -114,7 +114,14 @@ function App() {
       }
 
       if (!posts.length || ignore) {
-        if (!ignore) setLoaded(LoadState.LOADED)
+        if (!ignore) {
+          // With history behind us the old wallpaper stays on screen, which
+          // is indistinguishable from a broken reroll unless we say why.
+          if (HistoryStore.history.length) {
+            setWarning("Nothing matched your filters — showing the last one")
+          }
+          setLoaded(LoadState.LOADED)
+        }
         return
       }
 
@@ -232,16 +239,16 @@ function App() {
                   <p className="attr-bottom to-load to-delay-4">
                     {error ? (
                       <>{error} • Check the Data tab in the menu</>
+                    ) : isColorOnly ? (
+                      <>Pick colours under Wallpaper in the menu</>
+                    ) : data === null ? (
+                      <>Try different filters! • Reddit down perhaps?</>
                     ) : warning ? (
                       <>
                         {warning} • Post{" "}
                         <strong>#{(data?.nums[0] || 0) + 1}</strong> of{" "}
                         <strong>{data?.nums[1]}</strong>
                       </>
-                    ) : isColorOnly ? (
-                      <>Pick colours under Wallpaper in the menu</>
-                    ) : data === null ? (
-                      <>Try different filters! • Reddit down perhaps?</>
                     ) : (
                       <>
                         Post <strong>#{(data?.nums[0] || 0) + 1}</strong> of{" "}

@@ -70,6 +70,48 @@ export const urlsToPosts = (urls: string[]): Post[] =>
       url,
     }))
 
+/**
+ * Reddit's search endpoint needs an actual query -- `search.json?q=` comes
+ * back empty, which is what "flair: any" used to produce. With no query we
+ * read the plain subreddit listing instead, which is the endpoint that means
+ * "everything in here".
+ */
+export function buildListingUrl(
+  subreddit: string,
+  config: ConfigState,
+  nsfw: boolean,
+  after: string | null
+) {
+  const search = config.q.trim()
+
+  if (search) {
+    const query = new URLSearchParams({
+      q: search,
+      sort: config.sort.toString(),
+      t: config.t.toString(),
+      show: "all",
+      restrict_sr: "1",
+      include_over_18: nsfw ? "on" : "off",
+    })
+    if (after) query.set("after", after)
+
+    return `https://www.reddit.com/r/${subreddit}/search.json?${query}`
+  }
+
+  // "relevance" is only meaningful against a query; hot is the listing analogue.
+  const listing = config.sort === "relevance" ? "hot" : config.sort
+  const query = new URLSearchParams({
+    limit: "100",
+    show: "all",
+    include_over_18: nsfw ? "on" : "off",
+  })
+  // Only the top listing is time-scoped.
+  if (listing === "top") query.set("t", config.t.toString())
+  if (after) query.set("after", after)
+
+  return `https://www.reddit.com/r/${subreddit}/${listing}.json?${query}`
+}
+
 async function fetchSubreddit(
   subreddit: string,
   config: ConfigState,
@@ -80,22 +122,10 @@ async function fetchSubreddit(
   let after: string | null = null
 
   while (posts.length < limit) {
-    const query = new URLSearchParams({
-      q: config.q.toString(),
-      sort: config.sort.toString(),
-      t: config.t.toString(),
-      show: "all",
-      restrict_sr: "1",
-      include_over_18: nsfw ? "on" : "off",
-    })
-    if (after) query.set("after", after)
-
     let json: RedditSearchResponse
 
     try {
-      const res = await fetch(
-        `https://www.reddit.com/r/${subreddit}/search.json?${query}`,
-      )
+      const res = await fetch(buildListingUrl(subreddit, config, nsfw, after))
       json = (await res.json()) as RedditSearchResponse
     } catch (error) {
       throw new SourceError(

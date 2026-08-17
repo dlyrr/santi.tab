@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import {
+  buildListingUrl,
   fetchPosts,
   matchesFilters,
   normalizeSubreddit,
@@ -84,6 +85,50 @@ describe("urlsToPosts", () => {
       title: "a b.jpg",
       url: "https://example.com/a%20b.jpg",
     })
+  })
+})
+
+describe("buildListingUrl", () => {
+  it("uses the search endpoint when there is a query", () => {
+    const url = buildListingUrl("Animewallpaper", config(), false, null)
+
+    expect(url).toContain("/r/Animewallpaper/search.json?")
+    expect(url).toContain("restrict_sr=1")
+    expect(url).toContain("include_over_18=off")
+  })
+
+  // Regression: "flair: any" clears the query, and search.json?q= returns an
+  // empty listing, which looked exactly like a frozen reroll.
+  it("falls back to the subreddit listing when the query is empty", () => {
+    const url = buildListingUrl("Animewallpaper", config({ q: "" }), false, null)
+
+    expect(url).toContain("/r/Animewallpaper/top.json?")
+    expect(url).not.toContain("search.json")
+    expect(url).toContain("t=year")
+    expect(url).toContain("limit=100")
+  })
+
+  it("treats a whitespace-only query as empty", () => {
+    expect(buildListingUrl("x", config({ q: "   " }), false, null)).toContain(
+      "/top.json?"
+    )
+  })
+
+  it("maps relevance onto hot, which has no time scope", () => {
+    const url = new URL(
+      buildListingUrl("x", config({ q: "", sort: "relevance" }), false, null)
+    )
+
+    expect(url.pathname).toBe("/r/x/hot.json")
+    expect(url.searchParams.get("t")).toBeNull()
+  })
+
+  it("passes pagination and nsfw through on the listing endpoint", () => {
+    const url = buildListingUrl("x", config({ q: "", sort: "new" }), true, "t3_a")
+
+    expect(url).toContain("/r/x/new.json?")
+    expect(url).toContain("after=t3_a")
+    expect(url).toContain("include_over_18=on")
   })
 })
 
