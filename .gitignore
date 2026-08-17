@@ -28,3 +28,6 @@ santi.tab-*.zip
 *.sw?
 
 coverage/
+
+# AMO signing credentials (.env.local is covered by *.local above)
+web-ext-artifacts/

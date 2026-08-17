@@ -34,7 +34,8 @@
     "test:ui-coverage": "vitest --ui --coverage",
     "test:coverage": "vitest run --coverage",
     "screenshots": "node scripts/screenshots.mjs",
-    "lint:ext": "npm run build:firefox && web-ext lint --source-dir=dist-firefox"
+    "lint:ext": "npm run build:firefox && web-ext lint --source-dir=dist-firefox",
+    "sign": "npm run build:firefox && node scripts/sign.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
