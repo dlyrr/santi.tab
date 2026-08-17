@@ -552,8 +552,10 @@
 
     button {
       flex-shrink: 0;
+      justify-content: center;
+      width: 36px;
       border-radius: 8px;
-      padding: 8px 12px;
+      padding: 0;
     }
   }
 

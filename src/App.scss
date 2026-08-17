@@ -96,6 +96,9 @@ button {
   font-size: 0.85em;
 
   display: flex;
+  // Without this a flex button stretches its icon to full height and pins it
+  // to the top, which reads as an off-centre glyph on icon-only buttons.
+  align-items: center;
   gap: 6px;
 
   border: none;
@@ -162,12 +165,21 @@ button {
 
   // Horizontal placement. The controls are pinned to the corner separately so
   // "center" really means centred on the page, not centred in what's left.
-  &[data-align="center"] .header-left {
+  //
+  // These deliberately match the specificity of the `.header-left` rule below
+  // -- an earlier version used a shorter selector and silently lost to it, so
+  // picking "center" did nothing.
+  &[data-align="left"] > .stage > header .header-left {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  &[data-align="center"] > .stage > header .header-left {
     align-items: center;
     text-align: center;
   }
 
-  &[data-align="right"] .header-left {
+  &[data-align="right"] > .stage > header .header-left {
     align-items: flex-end;
     text-align: right;
   }
@@ -179,7 +191,6 @@ button {
     .header-left {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
       gap: 4px;
       width: 100%;
       min-width: 0;
@@ -423,7 +434,9 @@ button {
   .time,
   .date,
   .search-bar,
-  .quick-links {
+  .quick-links,
+  .quote,
+  .todo {
     opacity: 0;
     pointer-events: none;
     transition: opacity calc(150ms * var(--anim-scale)) ease;
