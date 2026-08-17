@@ -9,8 +9,9 @@ From [upstream](https://github.com/cf12/atarashii-tab/blob/main/TODO.md):
 
 Added since:
 
-- [x] **Inspiring quotes** — Widgets → Quotes. Bundled offline, rotating daily
-      or per tab, and replaceable with your own list.
+- [x] **Inspiring quotes** — Widgets → Quotes. Pulled from an API with a
+      bundled offline fallback, rotating daily or per tab, and replaceable
+      with your own list.
 - [x] **Simple to-do list** — Widgets → To-do. Persists with your settings, so
       it travels with an export.
 

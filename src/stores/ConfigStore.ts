@@ -116,6 +116,7 @@ export type TodoItem = {
 }
 
 export type QuoteRotation = "tab" | "daily"
+export type QuoteSource = "online" | "bundled"
 
 export type ConfigState = {
   num?: number
@@ -206,6 +207,8 @@ export type ConfigState = {
     }
     quotes: {
       enabled: boolean
+      /** "online" pulls from a quotes API and falls back to bundled offline. */
+      source: QuoteSource
       rotation: QuoteRotation
       showAuthor: boolean
       /** One quote per line, "text — author". Empty falls back to the bundled set. */
@@ -329,6 +332,7 @@ export const DEFAULT_CONFIG: ConfigState = {
     },
     quotes: {
       enabled: false,
+      source: "online",
       rotation: "daily",
       showAuthor: true,
       custom: "",

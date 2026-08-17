@@ -125,10 +125,14 @@ new tabs.
 ## Privacy
 
 - Fonts are bundled, not fetched from Google
-- Settings and history stay in `localStorage`; nothing is sent anywhere
-- The only requests are: reddit for the listing, the image host for the
-  wallpaper, and — only if you add shortcuts — each shortcut's own favicon
-- Incognito mode fetches nothing at all
+- Settings, history and to-dos stay in `localStorage`. No account, no
+  telemetry, no analytics — nothing about you is collected or sent anywhere
+- Outbound requests, and all of them are opt-in beyond the wallpaper itself:
+  - reddit for the post listing, and the image host for the wallpaper
+  - `dummyjson.com` for a quote, **only** if the quote widget is on and set to
+    "online" — switch it to "bundled" and it never leaves your browser
+  - each shortcut's own site for its favicon, **only** if you add shortcuts
+- Incognito mode fetches no wallpapers at all
 
 ## Development
 

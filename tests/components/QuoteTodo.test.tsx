@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import QuoteWidget from "../../src/components/Quote"
 import TodoList from "../../src/components/TodoList"
 import { dailyIndex, parseQuote, QUOTES } from "../../src/data/quotes"
+import { CacheStore } from "../../src/stores/CacheStore"
+import { isSameDay } from "../../src/utils/quotes"
 import {
   addTodo,
   clearCompletedTodos,
@@ -105,6 +107,119 @@ describe("Quote widget", () => {
     expect(document.querySelector("blockquote")?.textContent).toBe(
       QUOTES[0].text
     )
+  })
+})
+
+describe("online quotes", () => {
+  beforeEach(() => {
+    resetStores()
+    ConfigStore.widgets.quotes.enabled = true
+    ConfigStore.widgets.quotes.source = "online"
+    ConfigStore.widgets.quotes.rotation = "tab"
+  })
+
+  const respond = (body: unknown, ok = true) =>
+    vi.fn().mockResolvedValue({ ok, json: async () => body })
+
+  it("shows the fetched quote and caches it", async () => {
+    const fetchMock = respond({ quote: "Ship early", author: "Someone" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<QuoteWidget />)
+
+    expect(await screen.findByText("Ship early")).toBeInTheDocument()
+    expect(screen.getByText("— Someone")).toBeInTheDocument()
+    expect(CacheStore.quote).toMatchObject({
+      text: "Ship early",
+      author: "Someone",
+    })
+  })
+
+  it("falls back to a bundled quote when offline", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")))
+
+    render(<QuoteWidget />)
+
+    // Rendered synchronously from the bundled set, never blank.
+    const text = document.querySelector("blockquote")?.textContent ?? ""
+    expect(QUOTES.some((q) => q.text === text)).toBe(true)
+
+    await waitFor(() => expect(CacheStore.quote).toBeNull())
+    expect(document.querySelector("blockquote")?.textContent).toBe(text)
+  })
+
+  it("falls back when the API answers with an error or junk", async () => {
+    vi.stubGlobal("fetch", respond({ quote: "nope" }, false))
+
+    render(<QuoteWidget />)
+    await waitFor(() => expect(CacheStore.quote).toBeNull())
+
+    const text = document.querySelector("blockquote")?.textContent ?? ""
+    expect(QUOTES.some((q) => q.text === text)).toBe(true)
+  })
+
+  it("reuses today's cached quote instead of refetching when daily", async () => {
+    ConfigStore.widgets.quotes.rotation = "daily"
+    CacheStore.quote = {
+      text: "Cached wisdom",
+      author: "Yesterday",
+      fetchedAt: Date.now(),
+    }
+
+    const fetchMock = respond({ quote: "Fresh", author: "Now" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<QuoteWidget />)
+
+    expect(await screen.findByText("Cached wisdom")).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("refetches when the cached quote is from a previous day", async () => {
+    ConfigStore.widgets.quotes.rotation = "daily"
+    CacheStore.quote = {
+      text: "Stale",
+      author: "Old",
+      fetchedAt: Date.now() - 48 * 60 * 60 * 1000,
+    }
+
+    const fetchMock = respond({ quote: "Fresh", author: "Now" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<QuoteWidget />)
+
+    expect(await screen.findByText("Fresh")).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalled()
+  })
+
+  it("never calls the API when set to bundled", async () => {
+    ConfigStore.widgets.quotes.source = "bundled"
+    const fetchMock = respond({ quote: "Ship early", author: "Someone" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<QuoteWidget />)
+    await waitFor(() => expect(fetchMock).not.toHaveBeenCalled())
+  })
+
+  it("never calls the API when the user supplied their own quotes", async () => {
+    ConfigStore.widgets.quotes.custom = "Mine — Me"
+    const fetchMock = respond({ quote: "Theirs", author: "Them" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<QuoteWidget />)
+
+    expect(screen.getByText("Mine")).toBeInTheDocument()
+    await waitFor(() => expect(fetchMock).not.toHaveBeenCalled())
+  })
+})
+
+describe("isSameDay", () => {
+  it("compares local calendar days, not elapsed hours", () => {
+    const now = new Date("2026-08-17T23:00:00")
+
+    expect(isSameDay(new Date("2026-08-17T00:30:00").getTime(), now)).toBe(true)
+    expect(isSameDay(new Date("2026-08-16T23:30:00").getTime(), now)).toBe(false)
+    expect(isSameDay(0, now)).toBe(false)
   })
 })
 

@@ -13,6 +13,7 @@ export function resetStores() {
   CacheStore.lastUpdated = -1
   CacheStore.lastRolled = -1
   CacheStore.data = []
+  CacheStore.quote = null
 
   resetConfig()
 

@@ -197,13 +197,25 @@ export default function WidgetsPanel() {
 
       <Section
         title="Quotes"
-        description="A line of something inspiring above your widgets. The bundled quotes ship with the extension — nothing is fetched."
+        description="A line of something inspiring above your widgets. Online pulls from dummyjson.com and falls back to the bundled set when you're offline; bundled never leaves your browser. Your own quotes always win."
       >
         <Toggle
           label="Show a quote"
           value={quotes.enabled}
           onChange={(next) => {
             ConfigStore.widgets.quotes.enabled = next
+          }}
+        />
+
+        <Segmented
+          label="Source"
+          value={quotes.source}
+          options={[
+            { value: "online", label: "online" },
+            { value: "bundled", label: "bundled" },
+          ]}
+          onChange={(next) => {
+            ConfigStore.widgets.quotes.source = next
           }}
         />
 
