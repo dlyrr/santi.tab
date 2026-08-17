@@ -19,7 +19,7 @@ is a custom CSS box at the bottom of it.
 It is a fork of [cf12/atarashii-tab](https://github.com/cf12/atarashii-tab),
 rebuilt around a much larger settings system and a second browser target.
 
-![santi.tab new tab page](marketing/screenshots/hero.png)
+![santi.tab new tab page](marketing/screenshots/screenshot.png)
 
 <details>
 <summary><b>The settings panel</b></summary>
