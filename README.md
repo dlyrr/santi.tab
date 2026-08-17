@@ -6,6 +6,8 @@
 
 **A ridiculously customizable new tab page — for Firefox and Chromium.**
 
+<img src="marketing/logo2.png"/>
+
 [![Build](https://github.com/dlyrr/santi.tab/actions/workflows/build.yml/badge.svg)](https://github.com/dlyrr/santi.tab/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-ffc400)](LICENSE)
 
