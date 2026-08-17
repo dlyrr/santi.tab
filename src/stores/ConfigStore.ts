@@ -67,6 +67,7 @@ export const KEYBIND_ACTIONS = {
   incognito: "Incognito",
   hideGui: "Hide / show GUI",
   nsfw: "Toggle NSFW",
+  settings: "Open / close settings",
   menu: "Open / close menu",
   favorite: "Favorite current",
   download: "Download wallpaper",
@@ -74,6 +75,24 @@ export const KEYBIND_ACTIONS = {
 } as const
 
 export type KeybindAction = keyof typeof KEYBIND_ACTIONS
+
+/**
+ * Menu tabs, in sidebar order. Everything after "history" is a settings pane,
+ * which is what the settings button jumps to.
+ */
+export const MENU_TABS = [
+  "history",
+  "wallpaper",
+  "appearance",
+  "clock",
+  "widgets",
+  "behavior",
+  "data",
+] as const
+
+export type MenuTab = (typeof MENU_TABS)[number]
+
+export const DEFAULT_SETTINGS_TAB: MenuTab = "appearance"
 
 export type Corner = "left" | "center" | "right"
 export type Vertical = "top" | "center" | "bottom"
@@ -102,6 +121,7 @@ export type ConfigState = {
   pinned: boolean
 
   isMenuVisible: boolean
+  menuTab: MenuTab
 
   theme: {
     primary: string
@@ -212,6 +232,7 @@ export const DEFAULT_CONFIG: ConfigState = {
   pinned: false,
 
   isMenuVisible: false,
+  menuTab: "history",
 
   theme: {
     primary: PRIMARY_COLOR_PRESETS[0],
@@ -305,6 +326,7 @@ export const DEFAULT_CONFIG: ConfigState = {
     incognito: "KeyI",
     hideGui: "KeyH",
     nsfw: "",
+    settings: "KeyS",
     menu: "KeyM",
     favorite: "KeyF",
     download: "KeyD",
@@ -373,6 +395,27 @@ export const pickValue = <K extends keyof ConfigStatePickableFields>(
 
 export const toggleMenu = () => {
   ConfigStore.isMenuVisible = !ConfigStore.isMenuVisible
+}
+
+export const setMenuTab = (tab: MenuTab) => {
+  ConfigStore.menuTab = tab
+}
+
+/**
+ * The settings button: opens the menu straight into settings, and closes it
+ * again if that's already what you're looking at. Reopens on whichever
+ * settings tab you used last -- never on History, which has its own button.
+ */
+export const toggleSettings = () => {
+  const onSettings = ConfigStore.menuTab !== "history"
+
+  if (ConfigStore.isMenuVisible && onSettings) {
+    ConfigStore.isMenuVisible = false
+    return
+  }
+
+  if (!onSettings) ConfigStore.menuTab = DEFAULT_SETTINGS_TAB
+  ConfigStore.isMenuVisible = true
 }
 
 /** Restores every field to its shipped default. */

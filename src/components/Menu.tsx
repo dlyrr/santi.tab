@@ -14,8 +14,9 @@ import {
 } from "react-icons/fa"
 import { useSnapshot } from "valtio"
 
+import type { IconType } from "react-icons"
 import { LoadState, setLoaded } from "../stores/AppStore"
-import { ConfigStore } from "../stores/ConfigStore"
+import { ConfigStore, setMenuTab, type MenuTab } from "../stores/ConfigStore"
 import {
   clearHistory,
   HistoryStore,
@@ -29,7 +30,11 @@ import DataPanel from "./settings/DataPanel"
 import WallpaperPanel from "./settings/WallpaperPanel"
 import WidgetsPanel from "./settings/WidgetsPanel"
 
-const TABS = [
+const TABS: ReadonlyArray<{
+  id: MenuTab
+  label: string
+  icon: IconType
+}> = [
   { id: "history", label: "History", icon: FaHistory },
   { id: "wallpaper", label: "Wallpaper", icon: FaImage },
   { id: "appearance", label: "Appearance", icon: FaPalette },
@@ -37,9 +42,7 @@ const TABS = [
   { id: "widgets", label: "Widgets", icon: FaCog },
   { id: "behavior", label: "Behavior", icon: FaKeyboard },
   { id: "data", label: "Data", icon: FaDatabase },
-] as const
-
-type MenuTab = (typeof TABS)[number]["id"]
+]
 
 const PANELS: Record<Exclude<MenuTab, "history">, ComponentType> = {
   wallpaper: WallpaperPanel,
@@ -208,8 +211,7 @@ function HistoryPanel() {
 }
 
 export default function Menu() {
-  const { isMenuVisible } = useSnapshot(ConfigStore)
-  const [activeTab, setActiveTab] = useState<MenuTab>("history")
+  const { isMenuVisible, menuTab: activeTab } = useSnapshot(ConfigStore)
 
   const Panel = activeTab === "history" ? null : PANELS[activeTab]
 
@@ -221,7 +223,7 @@ export default function Menu() {
             key={id}
             type="button"
             className={activeTab === id ? "active" : ""}
-            onClick={() => setActiveTab(id)}
+            onClick={() => setMenuTab(id)}
           >
             <Icon size={16} />
             {label}

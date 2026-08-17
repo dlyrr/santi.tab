@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
+  FaCog,
   FaExclamationTriangle,
   FaEye,
   FaEyeSlash,
@@ -18,6 +19,7 @@ import {
   toggle,
   toggleMenu,
   toggleNsfw,
+  toggleSettings,
   type ConfigStatePickableFields,
 } from "../stores/ConfigStore"
 import { HistoryStore, toggleFavoriteAt } from "../stores/HistoryStore"
@@ -141,11 +143,20 @@ function Config() {
         action: () => toggle("hideGui"),
         keyBinding: config.keybinds.hideGui,
       },
+      {
+        id: "settings",
+        icon: FaCog,
+        action: toggleSettings,
+        isActive: config.isMenuVisible && config.menuTab !== "history",
+        keyBinding: config.keybinds.settings,
+      },
     ],
     [
       config.hideGui,
       config.incognito,
+      config.isMenuVisible,
       config.keybinds,
+      config.menuTab,
       config.nsfw,
       config.pinned,
       isRolling,
