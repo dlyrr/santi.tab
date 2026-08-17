@@ -132,6 +132,25 @@ npm run package        # build both targets and zip them
 npm run screenshots    # drive the built bundle in Chromium; fails on any error
 ```
 
+### Publishing the Firefox build
+
+Two different channels, and they share one version-number namespace:
+
+```bash
+npm run sign           # unlisted: AMO signs it, you distribute the .xpi yourself
+npm run package:amo    # listed: builds the UNSIGNED zip + source zip to upload
+```
+
+AMO version numbers are unique **per add-on across both channels**, so a
+version you have already run `npm run sign` on cannot then be submitted to the
+store — you'll get *"Version X already exists"*. Bump the version first, and
+only run one of the two commands per version.
+
+A listed submission also needs the source archive, because the shipped bundle
+is minified; the reviewer build steps are `npm ci && npm run build:firefox`.
+Upload the **unsigned** zip: AMO re-signs everything itself, and uploading an
+already-signed package just adds a warning.
+
 Two generated asset steps, only needed when you change them:
 
 ```bash
