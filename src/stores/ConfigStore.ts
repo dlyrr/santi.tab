@@ -109,6 +109,14 @@ export type QuickLink = {
   url: string
 }
 
+export type TodoItem = {
+  id: string
+  text: string
+  done: boolean
+}
+
+export type QuoteRotation = "tab" | "daily"
+
 export type ConfigState = {
   num?: number
   q: string
@@ -195,6 +203,18 @@ export type ConfigState = {
       showLabels: boolean
       newTab: boolean
       items: QuickLink[]
+    }
+    quotes: {
+      enabled: boolean
+      rotation: QuoteRotation
+      showAuthor: boolean
+      /** One quote per line, "text — author". Empty falls back to the bundled set. */
+      custom: string
+    }
+    todo: {
+      enabled: boolean
+      hideCompleted: boolean
+      items: TodoItem[]
     }
   }
 
@@ -305,6 +325,17 @@ export const DEFAULT_CONFIG: ConfigState = {
       enabled: false,
       showLabels: true,
       newTab: false,
+      items: [],
+    },
+    quotes: {
+      enabled: false,
+      rotation: "daily",
+      showAuthor: true,
+      custom: "",
+    },
+    todo: {
+      enabled: false,
+      hideCompleted: false,
       items: [],
     },
   },
@@ -483,9 +514,36 @@ export const setFlair = (flair: string) => {
   ConfigStore.q = flair ? `flair:"${flair}"${rest ? ` ${rest}` : ""}` : rest
 }
 
+// Not security-sensitive -- just needs to be stable per row for React keys.
+const rowId = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+
 export const createQuickLink = (title: string, url: string): QuickLink => ({
-  // Not security-sensitive -- just needs to be stable per row for React keys.
-  id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+  id: rowId(),
   title,
   url,
 })
+
+export const addTodo = (text: string) => {
+  const trimmed = text.trim()
+  if (!trimmed) return
+
+  ConfigStore.widgets.todo.items.push({ id: rowId(), text: trimmed, done: false })
+}
+
+export const toggleTodo = (id: string) => {
+  const item = ConfigStore.widgets.todo.items.find((todo) => todo.id === id)
+  if (item) item.done = !item.done
+}
+
+export const removeTodo = (id: string) => {
+  const items = ConfigStore.widgets.todo.items
+  const index = items.findIndex((todo) => todo.id === id)
+  if (index >= 0) items.splice(index, 1)
+}
+
+export const clearCompletedTodos = () => {
+  ConfigStore.widgets.todo.items = ConfigStore.widgets.todo.items.filter(
+    (todo) => !todo.done
+  )
+}

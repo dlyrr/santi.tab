@@ -717,3 +717,8 @@
     transform: translateY(0);
   }
 }
+
+.menu .card-action-group {
+  display: flex;
+  gap: 6px;
+}

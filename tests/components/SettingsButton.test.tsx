@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom"
 import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import Config from "../../src/components/Config"
 import Menu from "../../src/components/Menu"
 import {
@@ -9,7 +9,8 @@ import {
   DEFAULT_SETTINGS_TAB,
   toggleSettings,
 } from "../../src/stores/ConfigStore"
-import { resetStores } from "../helpers"
+import { HistoryStore } from "../../src/stores/HistoryStore"
+import { makeImageData, resetStores } from "../helpers"
 
 describe("toggleSettings", () => {
   beforeEach(resetStores)
@@ -102,6 +103,32 @@ describe("settings button", () => {
     expect(
       screen.getByRole("button", { name: /set primary color to #ffc400/i })
     ).toBeInTheDocument()
+  })
+
+  it("offers a save button only once there is a wallpaper", async () => {
+    const { rerender } = render(<Config />)
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument()
+
+    HistoryStore.history = [
+      makeImageData({ title: "Scenery", url: "https://i.redd.it/a.jpg" }),
+    ]
+    HistoryStore.i = 0
+    rerender(<Config />)
+
+    const save = await screen.findByRole("button", { name: /save/i })
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(["x"]),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    vi.stubGlobal("URL", { ...URL, createObjectURL: () => "blob:x", revokeObjectURL: vi.fn() })
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {})
+
+    await userEvent.setup().click(save)
+
+    expect(fetchMock).toHaveBeenCalledWith("https://i.redd.it/a.jpg")
+    expect(click).toHaveBeenCalled()
   })
 
   it("remembers the tab picked in the sidebar", async () => {

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ComponentType } from "react"
 import {
   FaCog,
   FaDatabase,
+  FaDownload,
   FaHistory,
   FaImage,
   FaKeyboard,
@@ -15,6 +16,7 @@ import {
 import { useSnapshot } from "valtio"
 
 import type { IconType } from "react-icons"
+import { downloadImage } from "../utils/download"
 import { LoadState, setLoaded } from "../stores/AppStore"
 import { ConfigStore, setMenuTab, type MenuTab } from "../stores/ConfigStore"
 import {
@@ -127,17 +129,31 @@ function MenuCard({
           <FaStar size={13} />
         </button>
 
-        <button
-          type="button"
-          className="card-action-button card-remove-button"
-          aria-label={`Remove ${data.title || "wallpaper"} from history`}
-          onClick={(event) => {
-            event.stopPropagation()
-            onRemove()
-          }}
-        >
-          <FaTrash size={13} />
-        </button>
+        <span className="card-action-group">
+          <button
+            type="button"
+            className="card-action-button card-save-button"
+            aria-label={`Save ${data.title || "wallpaper"}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              downloadImage(data.url, data.title)
+            }}
+          >
+            <FaDownload size={13} />
+          </button>
+
+          <button
+            type="button"
+            className="card-action-button card-remove-button"
+            aria-label={`Remove ${data.title || "wallpaper"} from history`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onRemove()
+            }}
+          >
+            <FaTrash size={13} />
+          </button>
+        </span>
       </div>
     </div>
   )

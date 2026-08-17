@@ -1,0 +1,36 @@
+.quote {
+  max-width: min(560px, 100%);
+  margin: 0 0 18px;
+
+  blockquote {
+    margin: 0;
+    color: rgba(white, 0.92);
+    font-size: 1.05em;
+    font-style: italic;
+    line-height: 1.5;
+
+    &::before {
+      content: "\201C";
+    }
+
+    &::after {
+      content: "\201D";
+    }
+  }
+
+  figcaption {
+    margin-top: 6px;
+    color: rgba(white, 0.66);
+    font-size: 0.82em;
+    font-weight: 600;
+  }
+}
+
+[data-align="center"] .quote {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+[data-align="right"] .quote {
+  margin-left: auto;
+}

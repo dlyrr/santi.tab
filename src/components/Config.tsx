@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FaCog,
+  FaDownload,
   FaExclamationTriangle,
   FaEye,
   FaEyeSlash,
@@ -65,8 +66,12 @@ const ValuePicker = ({
 
 function Config() {
   const config = useSnapshot(ConfigStore)
+  const { history, i } = useSnapshot(HistoryStore)
   const [isRolling, setIsRolling] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const rollOverlayTimeout = useRef<number | null>(null)
+
+  const current = history[i] ?? history[history.length - 1]
 
   const reroll = useCallback(() => {
     if (config.settings.soundEffects) playRollSound(config.settings.volume)
@@ -143,6 +148,23 @@ function Config() {
         action: () => toggle("hideGui"),
         keyBinding: config.keybinds.hideGui,
       },
+      // Only offered when there is actually something on screen to save.
+      ...(current
+        ? [
+            {
+              id: "save",
+              icon: FaDownload,
+              action: () => {
+                setIsSaving(true)
+                downloadImage(current.url, current.title).finally(() =>
+                  setIsSaving(false)
+                )
+              },
+              isActive: isSaving,
+              keyBinding: config.keybinds.download,
+            },
+          ]
+        : []),
       {
         id: "settings",
         icon: FaCog,
@@ -159,7 +181,9 @@ function Config() {
       config.menuTab,
       config.nsfw,
       config.pinned,
+      current,
       isRolling,
+      isSaving,
       reroll,
     ]
   )
@@ -182,16 +206,16 @@ function Config() {
         return
       }
 
+      // Actions without a button of their own. The save shortcut is handled
+      // by the save button above whenever there is a wallpaper to save.
       const { keybinds } = ConfigStore
-      const current = HistoryStore.history[HistoryStore.i]
+      const shown = HistoryStore.history[HistoryStore.i]
 
       if (keybinds.menu && e.code === keybinds.menu) toggleMenu()
       else if (keybinds.favorite && e.code === keybinds.favorite)
         toggleFavoriteAt(HistoryStore.i)
-      else if (keybinds.download && e.code === keybinds.download && current)
-        downloadImage(current.url, current.title)
-      else if (keybinds.openPost && e.code === keybinds.openPost && current)
-        window.open(current.link, "_blank", "noopener,noreferrer")
+      else if (keybinds.openPost && e.code === keybinds.openPost && shown)
+        window.open(shown.link, "_blank", "noopener,noreferrer")
     }
 
     document.addEventListener("keydown", action)

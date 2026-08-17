@@ -7,7 +7,9 @@ import Menu from "./components/Menu"
 import Image from "./components/Image"
 import MenuButton from "./components/MenuButton"
 import QuickLinks from "./components/QuickLinks"
+import QuoteWidget from "./components/Quote"
 import SearchBar from "./components/SearchBar"
+import TodoList from "./components/TodoList"
 import { TimeDate } from "./components/TimeDate"
 
 import pkg from "../package.json"
@@ -201,6 +203,8 @@ function App() {
 
                 <SearchBar />
                 <QuickLinks />
+                <QuoteWidget />
+                <TodoList />
               </div>
             </header>
           </div>

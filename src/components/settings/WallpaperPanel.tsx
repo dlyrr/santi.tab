@@ -16,7 +16,7 @@ import {
   Section,
   Segmented,
   Slider,
-  TextField,
+  SubmitField,
 } from "../ui/Controls"
 import ListEditor from "../ui/ListEditor"
 
@@ -92,12 +92,14 @@ export default function WallpaperPanel() {
               }}
             />
 
-            <TextField
-              label="Raw query"
+            <SubmitField
+              label="Search phrase"
               value={q}
-              placeholder='flair:"Desktop" 4k'
-              onChange={(next) => {
+              placeholder='sunset, or flair:"Desktop" 4k'
+              hint="Press Enter to search. Leave empty to browse the whole subreddit."
+              onSubmit={(next) => {
                 ConfigStore.q = next
+                refetch()
               }}
             />
 

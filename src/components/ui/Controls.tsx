@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react"
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 
 /** A titled card in a settings panel. */
 export function Section({
@@ -163,6 +163,60 @@ export function TextField({
         />
       )}
     </label>
+  )
+}
+
+/**
+ * A text field whose value is only committed on Enter or blur.
+ *
+ * Used for anything that triggers a network refetch -- committing per
+ * keystroke would fire a reddit request for every letter typed.
+ */
+export function SubmitField({
+  label,
+  value,
+  placeholder,
+  hint,
+  onSubmit,
+}: {
+  label: string
+  value: string
+  placeholder?: string
+  hint?: string
+  onSubmit: (next: string) => void
+}) {
+  const [draft, setDraft] = useState(value)
+
+  // Resync when something else edits the value, e.g. the flair picker
+  // rewriting the query out from under us.
+  useEffect(() => setDraft(value), [value])
+
+  const commit = () => {
+    if (draft !== value) onSubmit(draft)
+  }
+
+  return (
+    <form
+      className="text-field"
+      onSubmit={(event) => {
+        event.preventDefault()
+        commit()
+      }}
+    >
+      <span className="control-label">{label}</span>
+
+      <input
+        type="text"
+        aria-label={label}
+        value={draft}
+        placeholder={placeholder}
+        spellCheck={false}
+        onChange={(event) => setDraft(event.currentTarget.value)}
+        onBlur={commit}
+      />
+
+      {hint && <small className="field-hint">{hint}</small>}
+    </form>
   )
 }
 

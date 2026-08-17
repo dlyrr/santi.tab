@@ -4,6 +4,7 @@ import { useSnapshot } from "valtio"
 
 import {
   ConfigStore,
+  clearCompletedTodos,
   createQuickLink,
   SEARCH_ENGINES,
   type SearchEngineKey,
@@ -98,7 +99,7 @@ function QuickLinkEditor() {
 }
 
 export default function WidgetsPanel() {
-  const { search, quickLinks } = useSnapshot(ConfigStore.widgets)
+  const { search, quickLinks, quotes, todo } = useSnapshot(ConfigStore.widgets)
   const { showMenuButton } = useSnapshot(ConfigStore.layout)
 
   return (
@@ -192,6 +193,79 @@ export default function WidgetsPanel() {
         />
 
         <QuickLinkEditor />
+      </Section>
+
+      <Section
+        title="Quotes"
+        description="A line of something inspiring above your widgets. The bundled quotes ship with the extension — nothing is fetched."
+      >
+        <Toggle
+          label="Show a quote"
+          value={quotes.enabled}
+          onChange={(next) => {
+            ConfigStore.widgets.quotes.enabled = next
+          }}
+        />
+
+        <Segmented
+          label="Change"
+          value={quotes.rotation}
+          options={[
+            { value: "daily", label: "once a day" },
+            { value: "tab", label: "every tab" },
+          ]}
+          onChange={(next) => {
+            ConfigStore.widgets.quotes.rotation = next
+          }}
+        />
+
+        <Toggle
+          label="Show author"
+          value={quotes.showAuthor}
+          onChange={(next) => {
+            ConfigStore.widgets.quotes.showAuthor = next
+          }}
+        />
+
+        <TextField
+          label="Your own quotes"
+          value={quotes.custom}
+          placeholder={"One per line:\nStay hungry — Steve Jobs"}
+          multiline
+          onChange={(next) => {
+            ConfigStore.widgets.quotes.custom = next
+          }}
+        />
+      </Section>
+
+      <Section
+        title="To-do"
+        description="A small checklist on your new tab. Stored with your settings, so it travels with an export."
+      >
+        <Toggle
+          label="Show to-do list"
+          value={todo.enabled}
+          onChange={(next) => {
+            ConfigStore.widgets.todo.enabled = next
+          }}
+        />
+
+        <Toggle
+          label="Hide completed"
+          value={todo.hideCompleted}
+          onChange={(next) => {
+            ConfigStore.widgets.todo.hideCompleted = next
+          }}
+        />
+
+        <button
+          type="button"
+          className="wide-button"
+          disabled={!todo.items.some((item) => item.done)}
+          onClick={clearCompletedTodos}
+        >
+          Clear completed <FaTrash size={12} />
+        </button>
       </Section>
 
       <Section
