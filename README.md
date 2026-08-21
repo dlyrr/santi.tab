@@ -29,12 +29,6 @@ around a much larger settings system and a second browser target.
 
 Install from **[addons.mozilla.org](https://addons.mozilla.org/firefox/addon/santi-tab/)**.
 
-> Awaiting Mozilla review — that link goes live once it's approved. Until then,
-> build from source and load it via `about:debugging#/runtime/this-firefox` →
-> **Load Temporary Add-on** → pick `dist-firefox/manifest.json`. Temporary
-> add-ons are removed when Firefox restarts; Firefox only installs an extension
-> permanently if it's signed by Mozilla.
-
 **Firefox needs one extra click.** Firefox treats Manifest V3 host permissions
 as optional, so reddit access isn't granted at install and no wallpapers load.
 Open **Menu → Data → Grant reddit.com access**. On Chromium that button never
